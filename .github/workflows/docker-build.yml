@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:   # ✅ allows manual trigger too
 
 jobs:
   build:
@@ -26,18 +27,26 @@ jobs:
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ secrets.DOCKER_USERNAME }}/weather-app:latest
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Decode SSH Key (stored as base64 in GitHub Secrets)
+      - name: Decode SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_BASE64 }}" | base64 -d > private.pem
+          chmod 600 private.pem
+
+      # Step 2: Deploy on EC2
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user   # ✅ No need for EC2_USER secret
-          key: ${{ secrets.EC2_SSH_KEY }}   # ✅ Works if you pasted raw PEM into secrets
+          host: ${{ secrets.EC2_HOST }}   # e.g. 98.88.174.141
+          username: ec2-user
+          key_path: private.pem
           script: |
             docker stop weather-app || true
             docker rm weather-app || true
