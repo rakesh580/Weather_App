@@ -36,8 +36,8 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          username: ec2-user   # ✅ No need for EC2_USER secret
+          key: ${{ secrets.EC2_SSH_KEY }}   # ✅ Works if you pasted raw PEM into secrets
           script: |
             docker stop weather-app || true
             docker rm weather-app || true
