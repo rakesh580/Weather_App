@@ -3,8 +3,8 @@ name: CI/CD - Weather App
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:   # ✅ allows manual trigger too
+      - main     # Runs on push to main
+  workflow_dispatch:   # ✅ Manual trigger option
 
 jobs:
   build:
@@ -27,24 +27,22 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64   # ✅ ensures Mac/EC2 both work
           tags: ${{ secrets.DOCKER_USERNAME }}/weather-app:latest
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Decode SSH Key (stored as base64 in GitHub Secrets)
       - name: Decode SSH key
         run: |
           echo "${{ secrets.EC2_SSH_KEY_BASE64 }}" | base64 -d > private.pem
           chmod 600 private.pem
 
-      # Step 2: Deploy on EC2
-      - name: Deploy to EC2 via SSH
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}   # e.g. 98.88.174.141
+          host: ${{ secrets.EC2_HOST }}   # Example: 54.226.xx.xx
           username: ec2-user
           key_path: private.pem
           script: |
