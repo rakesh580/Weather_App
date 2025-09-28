@@ -1,55 +1,105 @@
-name: CI/CD - Weather App
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🌤 US Weather App</title>
+    <title>🌤 India Weather App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
 
-on:
-  push:
-    branches:
-      - main   # Runs on every push to main
-  workflow_dispatch:   # ✅ Allows manual trigger from GitHub Actions tab
+<div class="container mt-5">
+    <h1 class="text-center mb-4">🌤 US Weather App</h1>
+    <h1 class="text-center mb-4">🌤 India Weather App</h1>
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+    <!-- Select Timezone -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <select id="zone" class="form-select">
+                <option value="America/New_York">New York</option>
+                <option value="America/Chicago">Chicago</option>
+                <option value="America/Denver">Denver</option>
+                <option value="America/Los_Angeles">Los Angeles</option>
+                <option value="America/Phoenix">Phoenix</option>
+                <option value="America/Anchorage">Anchorage</option>
+                <option value="Pacific/Honolulu">Honolulu</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <button onclick="fetchWeather()" class="btn btn-primary w-100">Get Weather</button>
+        </div>
+    </div>
 
-    steps:
-      # Step 1: Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v3
+    <!-- Current Weather -->
+    <div id="weatherResult" class="card shadow p-4 mb-4" style="display: none;">
+        <h3 id="city"></h3>
+        <p><b>Timezone:</b> <span id="timezone"></span></p>
+        <p><b>Local Time:</b> <span id="local_time"></span></p>
+        <p><b>Temperature:</b> <span id="temperature"></span> °F</p>
+        <p><b>Humidity:</b> <span id="humidity"></span>%</p>
+        <p><b>Weather:</b> <span id="weather"></span></p>
+        <p><b>Wind Speed:</b> <span id="wind_speed"></span> mph</p>
+    </div>
 
-      # Step 2: Set up Docker Buildx
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+    <!-- Forecast -->
+    <div id="forecastResult" class="card shadow p-4" style="display: none;">
+        <h4>📅 5-Day / 3-Hour Forecast</h4>
+        <table class="table table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Temp (°F)</th>
+                    <th>Humidity (%)</th>
+                    <th>Weather</th>
+                    <th>Wind Speed (mph)</th>
+                </tr>
+            </thead>
+            <tbody id="forecastTable"></tbody>
+        </table>
+    </div>
+</div>
 
-      # Step 3: Log in to Docker Hub
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+<script>
+async function fetchWeather() {
+    const zone = document.getElementById("zone").value;
 
-      # Step 4: Build and Push Docker image
-      - name: Build and Push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          platforms: linux/amd64,linux/arm64   # ✅ Multi-platform support (fixes Mac M1/M2 pull issues)
-          tags: ${{ secrets.DOCKER_USERNAME }}/weather-app:latest
+    // --- Fetch Current Weather ---
+    const resCurrent = await fetch(`/api/weather?zone=${zone}`);
+    const current = await resCurrent.json();
 
-      # Step 5: Decode SSH key from GitHub Secret
-      - name: Decode SSH key
-        run: |
-          echo "${{ secrets.EC2_SSH_KEY_BASE64 }}" | base64 -d > private.pem
-          chmod 600 private.pem
+    if (current.error) {
+        alert(current.error);
+        return;
+    }
 
-      # Step 6: Deploy on EC2
-      - name: Deploy on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key_path: private.pem
-          script: |
-            docker stop weather-app || true
-            docker rm weather-app || true
-            docker pull ${{ secrets.DOCKER_USERNAME }}/weather-app:latest
-            docker run -d -p 9000:9000 --name weather-app ${{ secrets.DOCKER_USERNAME }}/weather-app:latest
+    document.getElementById("city").innerText = "City: " + current.city;
+    document.getElementById("timezone").innerText = current.timezone;
+    document.getElementById("local_time").innerText = current.local_time;
+    document.getElementById("temperature").innerText = current.temperature;
+    document.getElementById("humidity").innerText = current.humidity;
+    document.getElementById("weather").innerText = current.weather;
+    document.getElementById("wind_speed").innerText = current.wind_speed;
+    document.getElementById("weatherResult").style.display = "block";
+
+    // --- Fetch Forecast ---
+    const resForecast = await fetch(`/api/forecast?zone=${zone}`);
+    const forecast = await resForecast.json();
+
+    const tableBody = document.getElementById("forecastTable");
+    tableBody.innerHTML = "";
+
+    forecast.forecast.forEach(item => {
+        const row = `<tr>
+            <td>${item.time}</td>
+            <td>${item.temperature}</td>
+            <td>${item.humidity}</td>
+            <td>${item.weather}</td>
+            <td>${item.wind_speed}</td>
+        </tr>`;
+        tableBody.innerHTML += row;
+    });
+
+    document.getElementById("forecastResult").style.display = "block";
+}
+</script>
+
+</body>
