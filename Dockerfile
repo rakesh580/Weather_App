@@ -16,9 +16,10 @@ RUN useradd --create-home --shell /bin/bash app \
     && chown -R app:app /app
 USER app
 
-# Copy requirements and install Python packages (CPU-only for speed)
+# Copy requirements and install Python packages (CPU-only PyTorch for speed)
 COPY --chown=app:app requirements.txt .
-RUN pip install --user --no-cache-dir --index-url https://download.pytorch.org/whl/cpu -r requirements.txt
+RUN pip install --user --no-cache-dir fastapi uvicorn requests pytz anthropic pinecone sentence-transformers numpy python-dotenv && \
+    pip install --user --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
 
 # Copy project files
 COPY --chown=app:app . .
