@@ -1,10 +1,16 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 import requests
 from datetime import datetime
 import pytz
 import threading, webbrowser
+import asyncio
+from typing import Optional
+
+# Import AI services
+from ai_services import WeatherRAGSystem
 
 # ✅ OpenWeatherMap API key
 API_KEY = "f2b2aea1751f9100a4550af87233e111"
@@ -21,7 +27,19 @@ ZONE_TO_CITY = {
 }
 
 # ✅ Create app
-app = FastAPI(title="US Weather API", version="3.0")
+app = FastAPI(title="US Weather API with AI Chat", version="4.0")
+
+# ✅ Initialize AI RAG system
+rag_system = WeatherRAGSystem()
+
+# ✅ Pydantic models for API
+class ChatRequest(BaseModel):
+    message: str
+    timezone: Optional[str] = "America/New_York"
+
+class ChatResponse(BaseModel):
+    response: str
+    timestamp: str
 
 # ✅ Serve static frontend
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -100,6 +118,75 @@ def get_forecast(zone: str = "America/New_York"):
         "city": city_info["city"],
         "timezone": zone,
         "forecast": forecast_list
+    }
+
+
+def get_current_weather_for_chat(zone: str) -> Optional[dict]:
+    """Helper function to get weather data for AI chat"""
+    try:
+        if zone not in ZONE_TO_CITY:
+            return None
+        
+        city_info = ZONE_TO_CITY[zone]
+        url = "https://api.openweathermap.org/data/2.5/weather"
+        params = {
+            "lat": city_info["lat"],
+            "lon": city_info["lon"],
+            "appid": API_KEY,
+            "units": "imperial"
+        }
+        
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        tz = pytz.timezone(zone)
+        local_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+        
+        return {
+            "city": city_info["city"],
+            "timezone": zone,
+            "local_time": local_time,
+            "temperature": data["main"]["temp"],
+            "humidity": data["main"]["humidity"],
+            "weather": data["weather"][0]["description"],
+            "wind_speed": data["wind"]["speed"]
+        }
+    except:
+        return None
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat_endpoint(request: ChatRequest):
+    """AI-powered chat endpoint for weather questions"""
+    try:
+        # Get current weather data for context
+        weather_data = get_current_weather_for_chat(request.timezone)
+        
+        # Generate AI response
+        ai_response = await rag_system.answer_question(
+            query=request.message,
+            weather_data=weather_data
+        )
+        
+        return ChatResponse(
+            response=ai_response,
+            timestamp=datetime.now().isoformat()
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chat service error: {str(e)}")
+
+
+@app.get("/api/chat/health")
+def chat_health_check():
+    """Check if AI services are working"""
+    return {
+        "status": "operational",
+        "services": {
+            "claude_ai": bool(rag_system.claude_ai.client),
+            "pinecone": bool(rag_system.pinecone_manager.index),
+            "embeddings": True
+        }
     }
 
 
