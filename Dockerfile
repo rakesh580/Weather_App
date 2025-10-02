@@ -1,5 +1,5 @@
-# Use an official Python image
-FROM python:3.9-slim
+# Use an official Python image - single platform for faster builds
+FROM --platform=linux/amd64 python:3.9-slim
 
 # Set working directory
 WORKDIR /app
@@ -16,9 +16,9 @@ RUN useradd --create-home --shell /bin/bash app \
     && chown -R app:app /app
 USER app
 
-# Copy requirements and install Python packages
+# Copy requirements and install Python packages (CPU-only for speed)
 COPY --chown=app:app requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --user --no-cache-dir --index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
 # Copy project files
 COPY --chown=app:app . .
