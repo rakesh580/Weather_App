@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+requests
+pytz
+anthropic
+pinecone
+sentence-transformers
+numpy
+python-dotenv
+torch --index-url https://download.pytorch.org/whl/cpu
