@@ -48,8 +48,8 @@ def setup_env_file():
         print("✅ Created .env file from template")
         print("🔧 Please edit .env file with your API keys:")
         print("   - ANTHROPIC_API_KEY (get from: https://console.anthropic.com/)")
-        print("   - PINECONE_API_KEY (get from: https://app.pinecone.io/)")
-        print("   - PINECONE_ENVIRONMENT (check your Pinecone dashboard)")
+        print("   - PINECONE_API_KEY (get from:pcsk_5ZYhDJ_6yLiTG9TctNj1GXRXmLgbNJqCwnCwVQMVEyey2C672zqtL1tLj9xcuTkeE4J7VE  /)")
+        print("   - PINECONE_ENVIRONMENT (check your Pinecone dashboardus-east-1-aws)")
     elif env_file.exists():
         print("✅ .env file already exists")
     else:
