@@ -1,52 +1,60 @@
-name: CI/CD - Weather App
+name: CI/CD - Weather AI App
 
 on:
   push:
     branches:
-      - main   # Runs on every push to main
-  workflow_dispatch:   # ✅ Allows manual trigger from GitHub Actions tab
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Checkout code
+      # Step 1: Checkout source code
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Step 2: Set up Docker Buildx
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      # Step 3: Log in to Docker Hub
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
+      # Step 2: Log in to Docker Hub
+      - name: Docker Login
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 4: Build and Push Docker image
-      - name: Build and Push Docker image
-        uses: docker/build-push-action@v4
+      # Step 3: Build and push Docker image
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          platforms: linux/amd64
           tags: ${{ secrets.DOCKER_USERNAME }}/weather-app:latest
+          platforms: linux/amd64
 
   deploy:
+    name: Deploy to AWS EC2
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to EC2 via SSH
+      - name: SSH to EC2 and Deploy Container
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}          # e.g. 98.88.174.141
-          username: ec2-user
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker stop weather-app || true
-            docker rm weather-app || true
-            docker pull ${{ secrets.DOCKER_USERNAME }}/weather-app:latest
-            # ✅ Expose container on port 80 so public URL works
-            docker run -d -p 80:9000 --name weather-app ${{ secrets.DOCKER_USERNAME }}/weather-app:latest
+            echo "🚀 Starting deployment on EC2..."
+            sudo docker stop weather-app || true
+            sudo docker rm weather-app || true
+            sudo docker rmi $(sudo docker images -q) -f || true
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/weather-app:latest
+            sudo docker run -d -p 80:9000 --name weather-app \
+              -e ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }} \
+              -e PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }} \
+              -e PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }} \
+              -e OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }} \
+              ${{ secrets.DOCKER_USERNAME }}/weather-app:latest
+            echo "✅ Deployment complete!"

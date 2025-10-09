@@ -1,15 +1,12 @@
-# Multi-stage build for smaller, faster images
-FROM python:3.9-slim as builder
+# Use newer Python (3.10 or 3.11)
+FROM python:3.9-slim AS builder
 
-# Install system dependencies for building
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Install build deps
+RUN apt-get update && apt-get install -y build-essential curl && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies in builder stage
+# Copy requirements and force NumPy < 2 for compatibility
 COPY requirements-production.txt .
-RUN pip install --user --no-cache-dir -r requirements-production.txt
+RUN pip install --user --no-cache-dir -r requirements-production.txt numpy<2
 
 # Production stage
 FROM python:3.9-slim
