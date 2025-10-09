@@ -5,5 +5,4 @@ pytz
 anthropic
 pinecone
 sentence-transformers
-numpy
 python-dotenv

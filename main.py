@@ -8,6 +8,10 @@ import pytz
 import threading, webbrowser
 import asyncio
 from typing import Optional
+import uvicorn
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=80, reload=False)
 
 # Import AI services
 from ai_services import WeatherRAGSystem

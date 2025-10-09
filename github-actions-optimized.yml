@@ -3,73 +3,77 @@ name: Deploy Weather AI App (Optimized)
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    # Set up Docker Buildx for caching
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Enable Docker Buildx caching (for faster rebuilds)
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-    
-    # Login to Docker Hub (optional, for caching)
+
+    # Docker Hub login (for private caching or pushing)
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-    
-    # Build Docker image with cache
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # Build Docker image (locally cached, not pushed)
     - name: Build Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ./Dockerfile.optimized  # Use optimized Dockerfile
-        platforms: linux/amd64       # Single platform only
+        file: ./Dockerfile.optimized
+        platforms: linux/amd64
         push: false
         load: true
         tags: weather-ai-app:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
-    
+
     # Deploy to EC2
     - name: Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.7
+      uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.AWS_HOST }}
-        username: ${{ secrets.AWS_USER }}
-        key: ${{ secrets.AWS_PRIVATE_KEY }}
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          # Stop existing container
+          echo "🚀 Starting deployment on EC2..."
+
+          # Stop old container (if any)
           docker stop weather-ai-app || true
           docker rm weather-ai-app || true
-          
-          # Pull latest code
-          cd /home/${{ secrets.AWS_USER }}/weather-app || git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git /home/${{ secrets.AWS_USER }}/weather-app
-          cd /home/${{ secrets.AWS_USER }}/weather-app
+
+          # Update repo (pull latest)
+          cd /home/${{ secrets.EC2_USER }}/weather-app || git clone https://github.com/rakesh580/Weather_App.git /home/${{ secrets.EC2_USER }}/weather-app
+          cd /home/${{ secrets.EC2_USER }}/weather-app
           git pull origin main
-          
-          # Create .env file with secrets
+
+          # Create .env file dynamically from GitHub Secrets
           echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" > .env
           echo "PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }}" >> .env
           echo "PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }}" >> .env
           echo "OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}" >> .env
-          
-          # Build with optimized Dockerfile and production requirements
+
+          # Build Docker image from optimized Dockerfile
           docker build -f Dockerfile.optimized -t weather-ai-app .
-          
-          # Run new container
+
+          # Run container with environment file
           docker run -d \
             --name weather-ai-app \
             --restart unless-stopped \
-            -p 9000:9000 \
+            -p 80:9000 \
             --env-file .env \
             weather-ai-app
-          
-          # Clean up old images
+
+          # Cleanup unused images to save space
           docker image prune -f
+
+          echo "✅ Deployment completed successfully!"
