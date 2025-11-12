@@ -2,7 +2,3 @@ fastapi
 uvicorn
 requests
 pytz
-anthropic
-pinecone
-sentence-transformers
-python-dotenv

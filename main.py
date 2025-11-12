@@ -2,19 +2,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-import requests
+import pytz, threading, webbrowser, json, asyncio
 from datetime import datetime
-import pytz
-import threading, webbrowser
-import asyncio
 from typing import Optional
-import uvicorn
+import httpx
+import requests
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=80, reload=False)
-
-# Import AI services
-from ai_services import WeatherRAGSystem
+# ✅ Ollama (via ngrok tunnel)
+# ⚠️ Use the exact URL shown in your ngrok terminal (copy HTTPS line)
+OLLAMA_URL = "https://uningrafted-nonmineralogical-aleisha.ngrok-free.dev"
 
 # ✅ OpenWeatherMap API key
 API_KEY = "f2b2aea1751f9100a4550af87233e111"
@@ -30,13 +26,10 @@ ZONE_TO_CITY = {
     "Pacific/Honolulu": {"lat": 21.3069, "lon": -157.8583, "city": "Honolulu"},
 }
 
-# ✅ Create app
-app = FastAPI(title="US Weather API with AI Chat", version="4.0")
+# ✅ Create FastAPI app
+app = FastAPI(title="US Weather API with Ollama AI Chat", version="5.1")
 
-# ✅ Initialize AI RAG system
-rag_system = WeatherRAGSystem()
-
-# ✅ Pydantic models for API
+# ✅ Pydantic models
 class ChatRequest(BaseModel):
     message: str
     timezone: Optional[str] = "America/New_York"
@@ -48,13 +41,13 @@ class ChatResponse(BaseModel):
 # ✅ Serve static frontend
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-
 @app.get("/")
 def serve_frontend():
-    """Serve frontend UI"""
+    """Serve the main HTML page"""
     return FileResponse("static/index.html")
 
 
+# ✅ WEATHER ENDPOINTS
 @app.get("/api/weather")
 def get_weather(zone: str = "America/New_York"):
     """Fetch current weather"""
@@ -108,7 +101,7 @@ def get_forecast(zone: str = "America/New_York"):
     tz = pytz.timezone(zone)
     forecast_list = []
 
-    for entry in data["list"][:10]:  # Limit to next 10 entries (~30 hrs)
+    for entry in data["list"][:10]:
         forecast_time = datetime.fromtimestamp(entry["dt"], tz).strftime("%Y-%m-%d %H:%M:%S")
         forecast_list.append({
             "time": forecast_time,
@@ -125,12 +118,12 @@ def get_forecast(zone: str = "America/New_York"):
     }
 
 
+# ✅ Helper: fetch live weather for chat
 def get_current_weather_for_chat(zone: str) -> Optional[dict]:
-    """Helper function to get weather data for AI chat"""
     try:
         if zone not in ZONE_TO_CITY:
             return None
-        
+
         city_info = ZONE_TO_CITY[zone]
         url = "https://api.openweathermap.org/data/2.5/weather"
         params = {
@@ -139,13 +132,13 @@ def get_current_weather_for_chat(zone: str) -> Optional[dict]:
             "appid": API_KEY,
             "units": "imperial"
         }
-        
+
         response = requests.get(url, params=params)
         data = response.json()
-        
+
         tz = pytz.timezone(zone)
         local_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
-        
+
         return {
             "city": city_info["city"],
             "timezone": zone,
@@ -159,43 +152,77 @@ def get_current_weather_for_chat(zone: str) -> Optional[dict]:
         return None
 
 
+# ✅ CHAT ENDPOINT — using Ollama
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
-    """AI-powered chat endpoint for weather questions"""
+    """AI-powered chat endpoint using local Ollama"""
     try:
-        # Get current weather data for context
         weather_data = get_current_weather_for_chat(request.timezone)
-        
-        # Generate AI response
-        ai_response = await rag_system.answer_question(
-            query=request.message,
-            weather_data=weather_data
-        )
-        
-        return ChatResponse(
-            response=ai_response,
-            timestamp=datetime.now().isoformat()
-        )
-        
+
+        # Build contextual prompt
+        prompt = f"""
+        You are a friendly AI Weather Assistant.
+        The user asked: "{request.message}"
+        Current weather context: {weather_data}
+        Respond conversationally and briefly.
+        """
+
+        model_name = "llama3:8b-instruct-q4_K_M"  # Adjust to your local model (see `ollama list`)
+
+        # Stream response from Ollama with httpx
+        async with httpx.AsyncClient(timeout=600.0) as client:
+            async with client.stream(
+                "POST",
+                f"{OLLAMA_URL}/api/generate",
+                json={"model": model_name, "prompt": prompt},
+            ) as response:
+
+                if response.status_code != 200:
+                    raise HTTPException(status_code=response.status_code, detail="Ollama request failed")
+
+                answer = ""
+                async for line in response.aiter_lines():
+                    if line:
+                        try:
+                            data = json.loads(line)
+                            if "response" in data:
+                                answer += data["response"]
+                        except json.JSONDecodeError:
+                            continue
+
+        if not answer.strip():
+            answer = "Sorry, I couldn’t generate a response."
+
+        return ChatResponse(response=answer, timestamp=datetime.now().isoformat())
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chat service error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ollama Chat error: {str(e)}")
 
 
+# ✅ Health check endpoint
 @app.get("/api/chat/health")
 def chat_health_check():
-    """Check if AI services are working"""
-    return {
-        "status": "operational",
-        "services": {
-            "claude_ai": bool(rag_system.claude_ai.client),
-            "pinecone": bool(rag_system.pinecone_manager.index),
-            "embeddings": True
-        }
-    }
+    """Health check for Ollama AI"""
+    try:
+        test = requests.post(
+            f"{OLLAMA_URL}/api/generate",
+            json={"model": "llama3", "prompt": "hi"},
+            timeout=15
+        )
+        if test.status_code == 200:
+            return {"status": "healthy", "ollama_connected": True}
+    except:
+        pass
+    return {"status": "unhealthy", "ollama_connected": False}
 
 
-# ✅ Auto-open browser
+# ✅ Auto-open browser (for local dev)
 def open_browser():
     webbrowser.open("http://127.0.0.1:9000")
 
 threading.Timer(1.0, open_browser).start()
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=9000, reload=False)

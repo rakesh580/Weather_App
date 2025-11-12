@@ -1,31 +1,23 @@
-# ✅ Multi-stage build for smaller, faster, EC2-compatible image
+# ✅ Stage 1: Builder (optional if you want future caching)
 FROM --platform=linux/amd64 python:3.10-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y build-essential curl git && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file (for cache efficiency)
-COPY requirements-production.txt .
-
-# ✅ Install dependencies (torch, numpy, transformers, etc.)
+# Copy and install requirements
+COPY requirements.txt .
 RUN pip install --upgrade pip \
- && pip install --no-cache-dir \
-    numpy==1.26.4 \
-    torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 \
-    -f https://download.pytorch.org/whl/cpu/torch_stable.html \
- && pip install --no-cache-dir -r requirements-production.txt
+ && pip install --no-cache-dir -r requirements.txt
 
 
+# ✅ Stage 2: Runtime (small, secure image)
 FROM --platform=linux/amd64 python:3.10-slim
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash app
 
 # Copy installed dependencies from builder
-COPY --from=builder /root/.local /home/app/.local
-
-# Install runtime tools
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /usr/local /usr/local
 
 # Set working directory
 WORKDIR /app
@@ -46,5 +38,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # ✅ Expose EC2 HTTP port
 EXPOSE 80
 
-# ✅ Run app with uvicorn
+# ✅ Start FastAPI app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
