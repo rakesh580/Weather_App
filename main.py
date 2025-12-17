@@ -10,10 +10,10 @@ import requests
 
 # ✅ Ollama (via ngrok tunnel)
 # ⚠️ Use the exact URL shown in your ngrok terminal (copy HTTPS line)
-OLLAMA_URL = "https://uningrafted-nonmineralogical-aleisha.ngrok-free.dev"
+OLLAMA_URL = " "
 
 # ✅ OpenWeatherMap API key
-API_KEY = "f2b2aea1751f9100a4550af87233e111"
+API_KEY = " "
 
 # ✅ US Zones with representative cities
 ZONE_TO_CITY = {
