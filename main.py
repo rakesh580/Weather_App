@@ -17,12 +17,10 @@ load_dotenv()
 API_KEY = os.getenv("OPENWEATHER_API_KEY")
 HF_API_KEY = os.getenv("HF_API_KEY")
 
-# Initialize Hugging Face clients
-hf_client = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
+# Hugging Face Inference API config
+HF_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
 hf_async_client = AsyncInferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
-
-# Hugging Face model for chat
-HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
+hf_sync_client = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
 
 # US Zones with representative cities
 ZONE_TO_CITY = {
@@ -36,7 +34,7 @@ ZONE_TO_CITY = {
 }
 
 # Create FastAPI app
-app = FastAPI(title="US Weather API with AI Chat", version="6.0")
+app = FastAPI(title="SkyPulse Weather API", version="7.0")
 
 # Pydantic models
 class ChatRequest(BaseModel):
@@ -133,6 +131,104 @@ def get_forecast(zone: str = "America/New_York"):
     }
 
 
+# SEARCH ENDPOINT — geocode city names
+@app.get("/api/search")
+def search_city(q: str, limit: int = 5):
+    """Search for cities by name using OpenWeatherMap Geocoding API"""
+    if not q or len(q) < 2:
+        return []
+
+    url = "http://api.openweathermap.org/geo/1.0/direct"
+    params = {"q": q, "limit": limit, "appid": API_KEY}
+
+    response = requests.get(url, params=params)
+    if response.status_code != 200:
+        return []
+
+    results = response.json()
+    return [
+        {
+            "name": r.get("name"),
+            "lat": r.get("lat"),
+            "lon": r.get("lon"),
+            "country": r.get("country"),
+            "state": r.get("state", "")
+        }
+        for r in results
+    ]
+
+
+# WEATHER BY COORDINATES — for searched cities and geolocation
+@app.get("/api/weather/coords")
+def get_weather_by_coords(lat: float, lon: float, name: str = ""):
+    """Fetch current weather by latitude/longitude"""
+    url = "https://api.openweathermap.org/data/2.5/weather"
+    params = {"lat": lat, "lon": lon, "appid": API_KEY, "units": "imperial"}
+
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    if response.status_code != 200:
+        return {"error": data.get("message", "Failed to fetch weather data")}
+
+    city_name = name if name else data.get("name", "Unknown")
+
+    return {
+        "city": city_name,
+        "country": data.get("sys", {}).get("country", ""),
+        "lat": lat,
+        "lon": lon,
+        "temperature": data["main"]["temp"],
+        "feels_like": data["main"].get("feels_like"),
+        "humidity": data["main"]["humidity"],
+        "pressure": data["main"].get("pressure"),
+        "visibility": data.get("visibility"),
+        "weather": data["weather"][0]["description"],
+        "weather_id": data["weather"][0]["id"],
+        "weather_icon": data["weather"][0]["icon"],
+        "wind_speed": data["wind"]["speed"],
+        "dt": data["dt"],
+        "timezone_offset": data.get("timezone", 0),
+        "sunrise": data.get("sys", {}).get("sunrise"),
+        "sunset": data.get("sys", {}).get("sunset")
+    }
+
+
+# FORECAST BY COORDINATES
+@app.get("/api/forecast/coords")
+def get_forecast_by_coords(lat: float, lon: float):
+    """Fetch 5-day / 3-hour forecast by latitude/longitude"""
+    url = "https://api.openweathermap.org/data/2.5/forecast"
+    params = {"lat": lat, "lon": lon, "appid": API_KEY, "units": "imperial"}
+
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    if response.status_code != 200:
+        return {"error": data.get("message", "Failed to fetch forecast data")}
+
+    forecast_list = []
+    for entry in data["list"]:
+        forecast_list.append({
+            "dt": entry["dt"],
+            "time": entry["dt_txt"],
+            "temperature": entry["main"]["temp"],
+            "feels_like": entry["main"].get("feels_like"),
+            "humidity": entry["main"]["humidity"],
+            "pressure": entry["main"].get("pressure"),
+            "weather": entry["weather"][0]["description"],
+            "weather_id": entry["weather"][0]["id"],
+            "weather_icon": entry["weather"][0]["icon"],
+            "wind_speed": entry["wind"]["speed"]
+        })
+
+    return {
+        "city": data.get("city", {}).get("name", ""),
+        "country": data.get("city", {}).get("country", ""),
+        "forecast": forecast_list
+    }
+
+
 # Helper: fetch live weather for chat
 def get_current_weather_for_chat(zone: str) -> Optional[dict]:
     try:
@@ -181,14 +277,15 @@ async def chat_endpoint(request: ChatRequest):
         weather_data = get_current_weather_for_chat(request.timezone)
 
         # Build contextual prompt
-        prompt = f"""You are a friendly AI Weather Assistant.
-The user asked: "{request.message}"
-Current weather context: {weather_data}
-Respond conversationally and briefly."""
+        system_msg = "You are SkyPulse AI, a friendly weather assistant. Respond conversationally and briefly."
+        user_msg = f'The user asked: "{request.message}"\nCurrent weather context: {weather_data}'
 
         response = await hf_async_client.chat.completions.create(
             model=HF_MODEL,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg}
+            ],
             max_tokens=500
         )
 
@@ -200,26 +297,34 @@ Respond conversationally and briefly."""
         return ChatResponse(response=answer, timestamp=datetime.now().isoformat())
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI Chat error: {str(e)}")
+        error_msg = str(e)
+        if "403" in error_msg or "permission" in error_msg.lower():
+            raise HTTPException(
+                status_code=503,
+                detail="HF token lacks 'Inference Providers' permission. "
+                       "Create a new token at https://huggingface.co/settings/tokens "
+                       "with 'Make calls to Inference Providers' enabled."
+            )
+        raise HTTPException(status_code=500, detail=f"AI Chat error: {error_msg}")
 
 
 # Health check endpoint
 @app.get("/api/chat/health")
 def chat_health_check():
     """Health check for Hugging Face AI"""
-    if not hf_client:
+    if not hf_sync_client:
         return {"status": "unhealthy", "ai_connected": False, "reason": "HF_API_KEY not set"}
     try:
-        response = hf_client.chat.completions.create(
+        response = hf_sync_client.chat.completions.create(
             model=HF_MODEL,
             messages=[{"role": "user", "content": "hi"}],
             max_tokens=5
         )
         if response.choices:
             return {"status": "healthy", "ai_connected": True}
-    except Exception:
-        pass
-    return {"status": "unhealthy", "ai_connected": False}
+        return {"status": "unhealthy", "ai_connected": False, "reason": "No response from model"}
+    except Exception as e:
+        return {"status": "unhealthy", "ai_connected": False, "reason": str(e)}
 
 
 # Auto-open browser (for local dev only)

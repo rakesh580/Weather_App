@@ -4,3 +4,4 @@ requests
 pytz
 python-dotenv
 huggingface_hub
+aiohttp

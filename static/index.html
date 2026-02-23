@@ -1,401 +1,161 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🌤 Weather App</title>
+  <title>SkyPulse</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-  <style>
-    body {
-      background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .card {
-      border-radius: 20px;
-    }
-    h1 {
-      font-weight: bold;
-      color: #fff;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-    }
-    .weather-icon {
-      font-size: 50px;
-    }
-    .forecast-card {
-      background: #ffffffcc;
-      border-radius: 12px;
-      padding: 15px;
-      margin: 10px;
-      text-align: center;
-      transition: transform 0.2s ease-in-out;
-    }
-    .forecast-card:hover {
-      transform: scale(1.05);
-    }
-    footer {
-      margin-top: 30px;
-      text-align: center;
-      color: #fff;
-      font-size: 14px;
-    }
-    
-    /* Chat Interface Styles */
-    .chat-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 350px;
-      max-height: 500px;
-      background: white;
-      border-radius: 15px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      z-index: 1000;
-      display: none;
-      flex-direction: column;
-    }
-    
-    .chat-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 15px;
-      border-radius: 15px 15px 0 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .chat-toggle {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border: none;
-      border-radius: 50%;
-      color: white;
-      font-size: 24px;
-      cursor: pointer;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-      z-index: 1001;
-      transition: transform 0.2s ease;
-    }
-    
-    .chat-toggle:hover {
-      transform: scale(1.1);
-    }
-    
-    .chat-messages {
-      flex: 1;
-      max-height: 300px;
-      overflow-y: auto;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    
-    .message {
-      max-width: 80%;
-      padding: 10px 15px;
-      border-radius: 18px;
-      word-wrap: break-word;
-    }
-    
-    .message.user {
-      background: #007bff;
-      color: white;
-      align-self: flex-end;
-      margin-left: auto;
-    }
-    
-    .message.ai {
-      background: #f1f3f4;
-      color: #333;
-      align-self: flex-start;
-    }
-    
-    .chat-input-container {
-      padding: 15px;
-      border-top: 1px solid #eee;
-      display: flex;
-      gap: 10px;
-    }
-    
-    .chat-input {
-      flex: 1;
-      border: 1px solid #ddd;
-      border-radius: 20px;
-      padding: 10px 15px;
-      outline: none;
-    }
-    
-    .chat-send {
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      padding: 10px 15px;
-      cursor: pointer;
-    }
-    
-    .typing-indicator {
-      display: none;
-      padding: 10px 15px;
-      background: #f1f3f4;
-      border-radius: 18px;
-      align-self: flex-start;
-      max-width: 80px;
-    }
-    
-    .typing-dots {
-      display: flex;
-      gap: 3px;
-    }
-    
-    .typing-dots div {
-      width: 8px;
-      height: 8px;
-      background: #999;
-      border-radius: 50%;
-      animation: typing 1.4s infinite;
-    }
-    
-    .typing-dots div:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dots div:nth-child(3) { animation-delay: 0.4s; }
-    
-    @keyframes typing {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-10px); }
-    }
-  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
-<div class="container">
-  <h1 class="text-center mb-5 animate__animated animate__fadeInDown">🌤 USA Weather App</h1>
+<!-- Weather Particles -->
+<div id="particleCanvas" class="particle-canvas"></div>
 
-  <!-- Select Timezone -->
-  <div class="row mb-4 justify-content-center animate__animated animate__fadeInUp">
-    <div class="col-md-6">
-      <select id="zone" class="form-select shadow-lg">
-        <option value="America/New_York">New York</option>
-        <option value="America/Chicago">Chicago</option>
-        <option value="America/Denver">Denver</option>
-        <option value="America/Los_Angeles">Los Angeles</option>
-        <option value="America/Phoenix">Phoenix</option>
-        <option value="America/Anchorage">Anchorage</option>
-        <option value="Pacific/Honolulu">Honolulu</option>
-      </select>
+<!-- Theme Toggle -->
+<button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">
+  <i class="fa-solid fa-moon" id="themeIcon"></i>
+</button>
+
+<div class="app-container">
+
+  <!-- Header -->
+  <header class="app-header">
+    <h1 class="app-title"><i class="fa-solid fa-cloud-sun"></i> SkyPulse</h1>
+    <p class="app-subtitle">Real-time weather, worldwide</p>
+  </header>
+
+  <!-- Search Section -->
+  <div class="search-section glass-card" style="padding: 16px 20px;">
+    <div class="search-wrapper">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search for a city..." autocomplete="off">
+      <button class="location-btn" id="locationBtn" title="Use my location">
+        <i class="fa-solid fa-location-crosshairs"></i>
+      </button>
+      <!-- Search Results Dropdown -->
+      <div class="search-dropdown" id="searchDropdown"></div>
     </div>
-    <div class="col-md-2">
-      <button onclick="fetchWeather()" class="btn btn-primary w-100 shadow-lg">Get Weather</button>
+  </div>
+
+  <!-- Favorites Bar -->
+  <div class="favorites-bar" id="favoritesBar"></div>
+
+  <!-- Loading Skeleton -->
+  <div id="loadingSkeleton" class="hidden">
+    <div class="skeleton skeleton-hero"></div>
+    <div class="skeleton skeleton-details"></div>
+  </div>
+
+  <!-- Weather Hero Section -->
+  <div id="weatherSection" class="hidden">
+    <div class="weather-hero fade-in-up">
+      <div class="hero-icon" id="heroIcon"></div>
+      <div class="hero-temp" id="heroTemp"></div>
+      <div class="hero-desc" id="heroDesc"></div>
+      <div class="hero-city" id="heroCity"></div>
+      <!-- Live Clock -->
+      <div class="hero-time" id="heroTime"></div>
+      <!-- Sunrise / Sunset Bar -->
+      <div class="sun-bar" id="sunBar" style="display:none;">
+        <div class="sun-track">
+          <div class="sun-dot" id="sunDot"></div>
+        </div>
+        <div class="sun-labels">
+          <span id="sunriseLabel"></span>
+          <span id="sunsetLabel"></span>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button class="fav-btn" id="favBtn" title="Add to favorites">
+          <i class="fa-regular fa-heart"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Comfort Score -->
+    <div class="comfort-section fade-in-up" id="comfortSection">
+      <svg class="comfort-svg" viewBox="0 0 120 120" width="120" height="120">
+        <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10" />
+        <circle cx="60" cy="60" r="48" fill="none" stroke="#48bb78" stroke-width="10"
+                stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="301.6"
+                transform="rotate(-90 60 60)" id="comfortArc" />
+        <text x="60" y="55" text-anchor="middle" fill="var(--text-primary)" font-size="22" font-weight="800" id="comfortScoreText">--</text>
+        <text x="60" y="72" text-anchor="middle" fill="var(--text-muted)" font-size="9" id="comfortLabel">COMFORT</text>
+      </svg>
+      <div class="comfort-right">
+        <div class="comfort-status" id="comfortStatus">--</div>
+        <div class="clothing-chips" id="clothingChips"></div>
+      </div>
+    </div>
+
+    <!-- Weather Details Grid -->
+    <div class="weather-details fade-in-up" id="weatherDetails"></div>
+
+    <!-- Forecast Section -->
+    <div class="section-header">
+      <span class="section-title"><i class="fa-solid fa-calendar-days"></i> Forecast</span>
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="cardViewBtn" onclick="setForecastView('cards')">Cards</button>
+        <button class="view-toggle-btn" id="chartViewBtn" onclick="setForecastView('chart')">Chart</button>
+        <button class="view-toggle-btn" id="dailyViewBtn" onclick="setForecastView('daily')">5 Day</button>
+      </div>
+    </div>
+
+    <div id="forecastCards" class="forecast-scroll"></div>
+    <div id="forecastChart" class="chart-container glass-card hidden">
+      <div class="chart-tabs">
+        <button class="chart-tab active" data-type="temperature" onclick="switchChart('temperature')">Temp</button>
+        <button class="chart-tab" data-type="wind" onclick="switchChart('wind')">Wind</button>
+        <button class="chart-tab" data-type="humidity" onclick="switchChart('humidity')">Humidity</button>
+      </div>
+      <canvas id="tempChart"></canvas>
+    </div>
+    <div id="forecastDaily" class="daily-forecast hidden"></div>
+
+    <!-- Map Section -->
+    <div class="section-header" style="margin-top: 24px;">
+      <span class="section-title"><i class="fa-solid fa-map-location-dot"></i> Map</span>
+    </div>
+    <div class="map-section glass-card" style="padding: 0; overflow: hidden;">
+      <div id="weatherMap"></div>
     </div>
   </div>
 
-  <!-- Current Weather -->
-  <div id="weatherResult" class="card shadow-lg p-4 mb-4 animate__animated animate__fadeIn" style="display: none; background: #ffffffdd;">
-    <h3 id="city" class="mb-3"></h3>
-    <p><b>🌍 Timezone:</b> <span id="timezone"></span></p>
-    <p><b>🕒 Local Time:</b> <span id="local_time"></span></p>
-    <p><b>🌡 Temperature:</b> <span id="temperature"></span> °F</p>
-    <p><b>💧 Humidity:</b> <span id="humidity"></span>%</p>
-    <p><b>⛅ Weather:</b> <span id="weather"></span></p>
-    <p><b>💨 Wind Speed:</b> <span id="wind_speed"></span> mph</p>
-  </div>
-
-  <!-- Forecast -->
-  <div id="forecastResult" class="mt-4" style="display: none;">
-    <h4 class="text-white text-center mb-4 animate__animated animate__fadeInUp">📅 5-Day / 3-Hour Forecast</h4>
-    <div id="forecastCards" class="row justify-content-center"></div>
-  </div>
-
-  <footer>
-    🌎 Built with ❤️ using Bootstrap + Animate.css + AI Chat
+  <footer class="app-footer">
+    SkyPulse &mdash; Built with FastAPI, Hugging Face AI, OpenWeatherMap, Leaflet & Chart.js
   </footer>
 </div>
 
 <!-- Chat Interface -->
-<button class="chat-toggle" onclick="toggleChat()" id="chatToggle">
-  💬
+<button class="chat-toggle-btn" onclick="toggleChat()" id="chatToggle">
+  <i class="fa-solid fa-comment-dots"></i>
 </button>
 
 <div class="chat-container" id="chatContainer">
   <div class="chat-header">
-    <span>🤖 Weather AI Assistant</span>
-    <button onclick="toggleChat()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">×</button>
+    <span><i class="fa-solid fa-robot"></i> SkyPulse AI</span>
+    <button class="chat-close-btn" onclick="toggleChat()">&times;</button>
   </div>
-  
   <div class="chat-messages" id="chatMessages">
-    <div class="message ai">
-      👋 Hi! I'm your weather AI assistant. Ask me anything about weather, clothing recommendations, or safety tips!
-    </div>
+    <div class="message ai">Hi! I'm SkyPulse AI. Ask me anything about weather, clothing, or safety tips!</div>
   </div>
-  
   <div class="typing-indicator" id="typingIndicator">
-    <div class="typing-dots">
-      <div></div>
-      <div></div>
-      <div></div>
-    </div>
+    <div class="typing-dots"><div></div><div></div><div></div></div>
   </div>
-  
-  <div class="chat-input-container">
-    <input type="text" class="chat-input" id="chatInput" placeholder="Ask about weather..." onkeypress="handleChatKeyPress(event)">
-    <button class="chat-send" onclick="sendMessage()">Send</button>
+  <div class="chat-input-area">
+    <input type="text" class="chat-input" id="chatInput" placeholder="Ask about weather..." onkeypress="if(event.key==='Enter') sendMessage()">
+    <button class="chat-send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
   </div>
 </div>
 
-<script>
-async function fetchWeather() {
-  const zone = document.getElementById("zone").value;
-  const API_BASE = window.location.origin;  // ✅ dynamically picks correct host:port
-
-  try {
-    // --- Fetch Current Weather ---
-    const resCurrent = await fetch(`${API_BASE}/api/weather?zone=${zone}`);
-    const current = await resCurrent.json();
-
-    if (current.error) {
-      alert(current.error);
-      return;
-    }
-
-    document.getElementById("city").innerText = "📍 City: " + current.city;
-    document.getElementById("timezone").innerText = current.timezone;
-    document.getElementById("local_time").innerText = current.local_time;
-    document.getElementById("temperature").innerText = current.temperature;
-    document.getElementById("humidity").innerText = current.humidity;
-    document.getElementById("weather").innerText = current.weather;
-    document.getElementById("wind_speed").innerText = current.wind_speed;
-    document.getElementById("weatherResult").style.display = "block";
-
-    // --- Fetch Forecast ---
-    const resForecast = await fetch(`${API_BASE}/api/forecast?zone=${zone}`);
-    const forecast = await resForecast.json();
-
-    const forecastCards = document.getElementById("forecastCards");
-    forecastCards.innerHTML = "";
-
-    forecast.forecast.forEach(item => {
-      const card = `
-        <div class="col-md-2 forecast-card shadow">
-          <p><b>${item.time}</b></p>
-          <p>🌡 ${item.temperature}°F</p>
-          <p>💧 ${item.humidity}%</p>
-          <p>${item.weather}</p>
-          <p>💨 ${item.wind_speed} mph</p>
-        </div>
-      `;
-      forecastCards.innerHTML += card;
-    });
-
-    document.getElementById("forecastResult").style.display = "block";
-  } catch (err) {
-    console.error("Error fetching weather:", err);
-    alert("Failed to fetch weather. Check server logs.");
-  }
-}
-
-// Chat functionality
-function toggleChat() {
-  const chatContainer = document.getElementById("chatContainer");
-  const chatToggle = document.getElementById("chatToggle");
-  
-  if (chatContainer.style.display === "none" || chatContainer.style.display === "") {
-    chatContainer.style.display = "flex";
-    chatToggle.style.display = "none";
-  } else {
-    chatContainer.style.display = "none";
-    chatToggle.style.display = "block";
-  }
-}
-
-function handleChatKeyPress(event) {
-  if (event.key === "Enter") {
-    sendMessage();
-  }
-}
-
-async function sendMessage() {
-  const input = document.getElementById("chatInput");
-  const message = input.value.trim();
-  
-  if (!message) return;
-  
-  // Add user message to chat
-  addMessageToChat(message, "user");
-  input.value = "";
-  
-  // Show typing indicator
-  showTypingIndicator();
-  
-  try {
-    const zone = document.getElementById("zone").value;
-    const API_BASE = window.location.origin;
-    
-    const response = await fetch(`${API_BASE}/api/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: message,
-        timezone: zone
-      })
-    });
-    
-    const data = await response.json();
-    
-    // Hide typing indicator
-    hideTypingIndicator();
-    
-    if (response.ok) {
-      addMessageToChat(data.response, "ai");
-    } else {
-      addMessageToChat("Sorry, I encountered an error. Please try again.", "ai");
-    }
-    
-  } catch (error) {
-    console.error("Chat error:", error);
-    hideTypingIndicator();
-    addMessageToChat("Sorry, I'm having trouble connecting. Please check your internet connection.", "ai");
-  }
-}
-
-function addMessageToChat(message, sender) {
-  const chatMessages = document.getElementById("chatMessages");
-  const messageDiv = document.createElement("div");
-  messageDiv.className = `message ${sender}`;
-  messageDiv.textContent = message;
-  
-  chatMessages.appendChild(messageDiv);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function showTypingIndicator() {
-  const typingIndicator = document.getElementById("typingIndicator");
-  const chatMessages = document.getElementById("chatMessages");
-  
-  chatMessages.appendChild(typingIndicator);
-  typingIndicator.style.display = "block";
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function hideTypingIndicator() {
-  const typingIndicator = document.getElementById("typingIndicator");
-  typingIndicator.style.display = "none";
-}
-
-// Initialize chat on page load
-document.addEventListener('DOMContentLoaded', function() {
-  console.log("Weather AI Chat initialized!");
-});
-</script>
+<!-- External Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/js/charts.js"></script>
+<script src="/static/js/app.js"></script>
 
 </body>
 </html>

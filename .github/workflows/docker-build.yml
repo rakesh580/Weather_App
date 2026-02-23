@@ -1,4 +1,4 @@
-name: CI/CD - Weather AI App
+name: CI/CD - SkyPulse
 
 on:
   push:
