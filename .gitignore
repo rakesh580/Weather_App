@@ -3,3 +3,12 @@
 __pycache__/
 *.pyc
 .cache/
+.netlify/
+node_modules/
+*.pem
+*.sqlite
+public/
+netlify/
+netlify.toml
+package.json
+docker-compose.yml

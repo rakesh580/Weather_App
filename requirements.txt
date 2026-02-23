@@ -2,3 +2,5 @@ fastapi
 uvicorn
 requests
 pytz
+python-dotenv
+huggingface_hub

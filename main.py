@@ -1,21 +1,30 @@
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-import pytz, threading, webbrowser, json, asyncio
+import pytz, threading, webbrowser
 from datetime import datetime
 from typing import Optional
-import httpx
 import requests
+from dotenv import load_dotenv
+from huggingface_hub import InferenceClient, AsyncInferenceClient
 
-# ✅ Ollama (via ngrok tunnel)
-# ⚠️ Use the exact URL shown in your ngrok terminal (copy HTTPS line)
-OLLAMA_URL = " "
+# Load environment variables from .env
+load_dotenv()
 
-# ✅ OpenWeatherMap API key
-API_KEY = " "
+# API keys from environment
+API_KEY = os.getenv("OPENWEATHER_API_KEY")
+HF_API_KEY = os.getenv("HF_API_KEY")
 
-# ✅ US Zones with representative cities
+# Initialize Hugging Face clients
+hf_client = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
+hf_async_client = AsyncInferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
+
+# Hugging Face model for chat
+HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
+
+# US Zones with representative cities
 ZONE_TO_CITY = {
     "America/New_York": {"lat": 40.7128, "lon": -74.0060, "city": "New York"},
     "America/Chicago": {"lat": 41.8781, "lon": -87.6298, "city": "Chicago"},
@@ -26,10 +35,10 @@ ZONE_TO_CITY = {
     "Pacific/Honolulu": {"lat": 21.3069, "lon": -157.8583, "city": "Honolulu"},
 }
 
-# ✅ Create FastAPI app
-app = FastAPI(title="US Weather API with Ollama AI Chat", version="5.1")
+# Create FastAPI app
+app = FastAPI(title="US Weather API with AI Chat", version="6.0")
 
-# ✅ Pydantic models
+# Pydantic models
 class ChatRequest(BaseModel):
     message: str
     timezone: Optional[str] = "America/New_York"
@@ -38,7 +47,7 @@ class ChatResponse(BaseModel):
     response: str
     timestamp: str
 
-# ✅ Serve static frontend
+# Serve static frontend
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
@@ -47,7 +56,7 @@ def serve_frontend():
     return FileResponse("static/index.html")
 
 
-# ✅ WEATHER ENDPOINTS
+# WEATHER ENDPOINTS
 @app.get("/api/weather")
 def get_weather(zone: str = "America/New_York"):
     """Fetch current weather"""
@@ -65,6 +74,9 @@ def get_weather(zone: str = "America/New_York"):
 
     response = requests.get(url, params=params)
     data = response.json()
+
+    if response.status_code != 200:
+        return {"error": data.get("message", "Failed to fetch weather data")}
 
     tz = pytz.timezone(zone)
     local_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
@@ -98,6 +110,9 @@ def get_forecast(zone: str = "America/New_York"):
     response = requests.get(url, params=params)
     data = response.json()
 
+    if response.status_code != 200:
+        return {"error": data.get("message", "Failed to fetch forecast data")}
+
     tz = pytz.timezone(zone)
     forecast_list = []
 
@@ -118,7 +133,7 @@ def get_forecast(zone: str = "America/New_York"):
     }
 
 
-# ✅ Helper: fetch live weather for chat
+# Helper: fetch live weather for chat
 def get_current_weather_for_chat(zone: str) -> Optional[dict]:
     try:
         if zone not in ZONE_TO_CITY:
@@ -136,6 +151,9 @@ def get_current_weather_for_chat(zone: str) -> Optional[dict]:
         response = requests.get(url, params=params)
         data = response.json()
 
+        if response.status_code != 200:
+            return None
+
         tz = pytz.timezone(zone)
         local_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -148,81 +166,68 @@ def get_current_weather_for_chat(zone: str) -> Optional[dict]:
             "weather": data["weather"][0]["description"],
             "wind_speed": data["wind"]["speed"]
         }
-    except:
+    except Exception:
         return None
 
 
-# ✅ CHAT ENDPOINT — using Ollama
+# CHAT ENDPOINT — using Hugging Face Inference API
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
-    """AI-powered chat endpoint using local Ollama"""
+    """AI-powered chat endpoint using Hugging Face"""
+    if not hf_async_client:
+        raise HTTPException(status_code=500, detail="AI Chat is not configured. Set HF_API_KEY.")
+
     try:
         weather_data = get_current_weather_for_chat(request.timezone)
 
         # Build contextual prompt
-        prompt = f"""
-        You are a friendly AI Weather Assistant.
-        The user asked: "{request.message}"
-        Current weather context: {weather_data}
-        Respond conversationally and briefly.
-        """
+        prompt = f"""You are a friendly AI Weather Assistant.
+The user asked: "{request.message}"
+Current weather context: {weather_data}
+Respond conversationally and briefly."""
 
-        model_name = "llama3:8b-instruct-q4_K_M"  # Adjust to your local model (see `ollama list`)
+        response = await hf_async_client.chat.completions.create(
+            model=HF_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500
+        )
 
-        # Stream response from Ollama with httpx
-        async with httpx.AsyncClient(timeout=600.0) as client:
-            async with client.stream(
-                "POST",
-                f"{OLLAMA_URL}/api/generate",
-                json={"model": model_name, "prompt": prompt},
-            ) as response:
+        answer = response.choices[0].message.content
 
-                if response.status_code != 200:
-                    raise HTTPException(status_code=response.status_code, detail="Ollama request failed")
-
-                answer = ""
-                async for line in response.aiter_lines():
-                    if line:
-                        try:
-                            data = json.loads(line)
-                            if "response" in data:
-                                answer += data["response"]
-                        except json.JSONDecodeError:
-                            continue
-
-        if not answer.strip():
-            answer = "Sorry, I couldn’t generate a response."
+        if not answer or not answer.strip():
+            answer = "Sorry, I couldn't generate a response."
 
         return ChatResponse(response=answer, timestamp=datetime.now().isoformat())
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ollama Chat error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI Chat error: {str(e)}")
 
 
-# ✅ Health check endpoint
+# Health check endpoint
 @app.get("/api/chat/health")
 def chat_health_check():
-    """Health check for Ollama AI"""
+    """Health check for Hugging Face AI"""
+    if not hf_client:
+        return {"status": "unhealthy", "ai_connected": False, "reason": "HF_API_KEY not set"}
     try:
-        test = requests.post(
-            f"{OLLAMA_URL}/api/generate",
-            json={"model": "llama3", "prompt": "hi"},
-            timeout=15
+        response = hf_client.chat.completions.create(
+            model=HF_MODEL,
+            messages=[{"role": "user", "content": "hi"}],
+            max_tokens=5
         )
-        if test.status_code == 200:
-            return {"status": "healthy", "ollama_connected": True}
-    except:
+        if response.choices:
+            return {"status": "healthy", "ai_connected": True}
+    except Exception:
         pass
-    return {"status": "unhealthy", "ollama_connected": False}
+    return {"status": "unhealthy", "ai_connected": False}
 
 
-# ✅ Auto-open browser (for local dev)
+# Auto-open browser (for local dev only)
 def open_browser():
     webbrowser.open("http://127.0.0.1:9000")
-
-threading.Timer(1.0, open_browser).start()
 
 
 if __name__ == "__main__":
     import uvicorn
+    threading.Timer(1.0, open_browser).start()
     uvicorn.run("main:app", host="0.0.0.0", port=9000, reload=False)

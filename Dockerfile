@@ -1,42 +1,45 @@
-# ✅ Stage 1: Builder (optional if you want future caching)
-FROM --platform=linux/amd64 python:3.10-slim AS builder
+# Stage 1: Builder
+FROM python:3.10-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y build-essential curl git && rm -rf /var/lib/apt/lists/*
 
-# Copy and install requirements
-COPY requirements.txt .
-RUN pip install --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt
+# Copy the correct requirements file
+COPY requirements-production.txt /app/requirements-production.txt
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements-production.txt
 
 
-# ✅ Stage 2: Runtime (small, secure image)
-FROM --platform=linux/amd64 python:3.10-slim
+# Stage 2: Runtime
+FROM python:3.10-slim
+
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash app
 
-# Copy installed dependencies from builder
+# Copy installed python packages from builder
 COPY --from=builder /usr/local /usr/local
 
 # Set working directory
 WORKDIR /app
 
-# Copy app source code
+# Copy application code
 COPY --chown=app:app . .
 
 # Switch to non-root user
 USER app
 
-# Add user-local bin to PATH
-ENV PATH="/home/app/.local/bin:$PATH"
-
-# ✅ Healthcheck endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:80/api/chat/health || exit 1
-
-# ✅ Expose EC2 HTTP port
+# Expose FastAPI port
 EXPOSE 80
 
-# ✅ Start FastAPI app
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost/ || exit 1
+
+# Start FastAPI
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]

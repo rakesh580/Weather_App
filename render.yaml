@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: weather-app
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      - key: HF_API_KEY
+        sync: false
