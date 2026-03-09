@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3c72"/>
+      <stop offset="50%" style="stop-color:#2a5298"/>
+      <stop offset="100%" style="stop-color:#6c5ce7"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700"/>
+      <stop offset="100%" style="stop-color:#ff6348"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- Cloud -->
+  <g fill="white" opacity="0.95">
+    <circle cx="26" cy="28" r="9"/>
+    <circle cx="36" cy="25" r="11"/>
+    <circle cx="44" cy="29" r="8"/>
+    <rect x="20" y="28" width="30" height="10" rx="5"/>
+  </g>
+  <!-- Sun peeking -->
+  <circle cx="44" cy="18" r="8" fill="url(#sun)" opacity="0.9"/>
+  <!-- Pulse line -->
+  <polyline points="10,46 18,46 22,38 26,50 30,42 34,48 38,44 42,46 54,46"
+    fill="none" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Text -->
+  <text x="32" y="59" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="6" font-weight="700" fill="rgba(255,255,255,0.9)" letter-spacing="0.5">SKYPULSE</text>
+</svg>

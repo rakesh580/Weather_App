@@ -593,7 +593,20 @@ async function sendMessage() {
     const response = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, timezone: 'America/New_York' })
+      body: JSON.stringify({
+        message,
+        timezone: 'America/New_York',
+        journey_context: currentJourneyData ? {
+          from: currentJourneyData.waypoints[0]?.name,
+          to: currentJourneyData.waypoints[currentJourneyData.waypoints.length - 1]?.name,
+          distance_miles: currentJourneyData.total_distance_miles,
+          duration_hours: currentJourneyData.total_duration_hours,
+          waypoints: currentJourneyData.waypoints.map(w => ({
+            name: w.name, severity: w.severity,
+            temp: w.weather.temperature, desc: w.weather.description
+          }))
+        } : null
+      })
     });
     const data = await response.json();
     hideTyping();
@@ -630,10 +643,222 @@ function hideTyping() {
   document.getElementById('typingIndicator').style.display = 'none';
 }
 
+// ===== Journey Weather Corridor =====
+let journeyMap = null;
+let journeyLayers = [];
+let journeyOriginData = null;
+let journeyDestData = null;
+let journeySearchTimeout = null;
+let currentJourneyData = null;
+
+function setupJourneySearch(inputId, dropdownId, setData) {
+  const input = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+
+  input.addEventListener('input', () => {
+    clearTimeout(journeySearchTimeout);
+    const q = input.value.trim();
+    if (q.length < 2) { dropdown.classList.remove('active'); return; }
+    journeySearchTimeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(q)}&limit=5`);
+        const results = await res.json();
+        if (!results.length) { dropdown.classList.remove('active'); return; }
+        dropdown.innerHTML = results.map(r => {
+          const detail = [r.state, r.country].filter(Boolean).join(', ');
+          return `<div class="search-result" data-lat="${r.lat}" data-lon="${r.lon}" data-name="${r.name}">
+            <div class="search-result-name">${r.name}</div>
+            <div class="search-result-detail">${detail}</div>
+          </div>`;
+        }).join('');
+        dropdown.classList.add('active');
+        // Attach click handlers
+        dropdown.querySelectorAll('.search-result').forEach(el => {
+          el.addEventListener('click', () => {
+            const data = { lat: parseFloat(el.dataset.lat), lon: parseFloat(el.dataset.lon), name: el.dataset.name };
+            input.value = data.name;
+            setData(data);
+            dropdown.classList.remove('active');
+          });
+        });
+      } catch (e) { console.error('Journey search error:', e); }
+    }, 300);
+  });
+
+  input.addEventListener('blur', () => {
+    setTimeout(() => dropdown.classList.remove('active'), 200);
+  });
+}
+
+async function planJourney() {
+  if (!journeyOriginData || !journeyDestData) {
+    alert('Please select both an origin and destination city.');
+    return;
+  }
+  const departure = document.getElementById('journeyDeparture').value;
+  if (!departure) {
+    alert('Please select a departure date and time.');
+    return;
+  }
+
+  const btn = document.getElementById('journeyGoBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Planning...';
+  document.getElementById('journeyResults').classList.add('hidden');
+  document.getElementById('journeyLoading').classList.remove('hidden');
+
+  try {
+    const res = await fetch(`${API_BASE}/api/journey`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origin_lat: journeyOriginData.lat,
+        origin_lon: journeyOriginData.lon,
+        origin_name: journeyOriginData.name,
+        dest_lat: journeyDestData.lat,
+        dest_lon: journeyDestData.lon,
+        dest_name: journeyDestData.name,
+        departure_time: departure
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    currentJourneyData = data;
+    renderJourneySummary(data);
+    renderJourneyMap(data);
+    renderJourneyTimeline(data);
+
+    document.getElementById('journeyLoading').classList.add('hidden');
+    document.getElementById('journeyResults').classList.remove('hidden');
+  } catch (e) {
+    console.error('Journey error:', e);
+    alert('Failed to plan journey. Please try again.');
+    document.getElementById('journeyLoading').classList.add('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-road"></i> Plan Route';
+  }
+}
+
+function renderJourneySummary(data) {
+  const el = document.getElementById('journeySummary');
+  const hasStorm = data.waypoints.some(w => w.severity === 'storm');
+  const hasRain = data.waypoints.some(w => w.severity === 'rain');
+  const hasSnow = data.waypoints.some(w => w.severity === 'snow');
+
+  let statusIcon, statusText, statusColor;
+  if (hasStorm) { statusIcon = 'fa-triangle-exclamation'; statusText = 'Severe weather on route'; statusColor = '#ef4444'; }
+  else if (hasSnow) { statusIcon = 'fa-snowflake'; statusText = 'Snow expected on route'; statusColor = '#f97316'; }
+  else if (hasRain) { statusIcon = 'fa-cloud-rain'; statusText = 'Rain expected on route'; statusColor = '#f59e0b'; }
+  else { statusIcon = 'fa-circle-check'; statusText = 'Clear conditions'; statusColor = '#22c55e'; }
+
+  el.innerHTML = `<div class="journey-summary-row">
+    <span class="journey-status" style="color:${statusColor}"><i class="fa-solid ${statusIcon}"></i> ${statusText}</span>
+    <span class="journey-stat"><i class="fa-solid fa-road"></i> ${Math.round(data.total_distance_miles)} mi</span>
+    <span class="journey-stat"><i class="fa-solid fa-clock"></i> ${data.total_duration_hours} hrs</span>
+    <span class="journey-stat"><i class="fa-solid fa-location-dot"></i> ${data.waypoints.length} waypoints</span>
+  </div>`;
+}
+
+function renderJourneyMap(data) {
+  if (!journeyMap) {
+    journeyMap = L.map('journeyMap', { zoomControl: false }).setView([39.8, -98.5], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(journeyMap);
+    L.control.zoom({ position: 'bottomright' }).addTo(journeyMap);
+  }
+
+  // Clear previous layers
+  journeyLayers.forEach(l => journeyMap.removeLayer(l));
+  journeyLayers = [];
+
+  // Draw full route as a faint background line
+  if (data.route_coords && data.route_coords.length > 1) {
+    const bgLine = L.polyline(data.route_coords, { color: 'rgba(255,255,255,0.15)', weight: 6 });
+    bgLine.addTo(journeyMap);
+    journeyLayers.push(bgLine);
+  }
+
+  // Draw colored segments
+  data.segments.forEach(seg => {
+    const line = L.polyline(seg.coords, {
+      color: seg.color,
+      weight: 5,
+      opacity: 0.9
+    });
+    line.addTo(journeyMap);
+    journeyLayers.push(line);
+  });
+
+  // Add waypoint markers
+  data.waypoints.forEach((wp, i) => {
+    const isEnd = i === 0 || i === data.waypoints.length - 1;
+    const markerOpts = {
+      radius: isEnd ? 8 : 5,
+      fillColor: wp.color,
+      color: '#fff',
+      weight: 2,
+      fillOpacity: 1
+    };
+    const marker = L.circleMarker([wp.lat, wp.lon], markerOpts);
+
+    const time = new Date(wp.estimated_arrival).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    marker.bindPopup(`
+      <strong>${wp.name}</strong><br>
+      <em>${time}</em><br>
+      ${Math.round(wp.weather.temperature)}&deg;F — ${wp.weather.description}<br>
+      <small>${Math.round(wp.distance_from_origin_miles)} mi from start</small>
+    `);
+
+    marker.addTo(journeyMap);
+    journeyLayers.push(marker);
+  });
+
+  // Fit bounds
+  const allCoords = data.waypoints.map(w => [w.lat, w.lon]);
+  journeyMap.fitBounds(allCoords, { padding: [40, 40] });
+  setTimeout(() => journeyMap.invalidateSize(), 300);
+}
+
+function renderJourneyTimeline(data) {
+  const container = document.getElementById('journeyTimeline');
+  container.innerHTML = data.waypoints.map((wp, i) => {
+    const icon = getSmallIcon(wp.weather.weather_id, wp.weather.weather_icon);
+    const time = new Date(wp.estimated_arrival).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const date = new Date(wp.estimated_arrival).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    // Connector color uses the next segment's color
+    const connColor = i < data.segments.length ? data.segments[i].color : 'transparent';
+
+    return `<div class="journey-wp-card" style="border-top: 3px solid ${wp.color}; ${i < data.waypoints.length - 1 ? '--conn-color:' + connColor : ''}">
+      <div class="journey-wp-name">${wp.name}</div>
+      <div class="journey-wp-time">${time} &middot; ${date}</div>
+      <div class="journey-wp-icon">${icon}</div>
+      <div class="journey-wp-temp">${Math.round(wp.weather.temperature)}&deg;F</div>
+      <div class="journey-wp-desc"><span class="journey-severity-dot" style="background:${wp.color}"></span>${wp.weather.description}</div>
+      <div class="journey-wp-dist">${Math.round(wp.distance_from_origin_miles)} mi</div>
+    </div>`;
+  }).join('');
+}
+
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   renderFavorites();
+
+  // Journey search setup
+  setupJourneySearch('journeyOrigin', 'journeyOriginDropdown', (d) => { journeyOriginData = d; });
+  setupJourneySearch('journeyDest', 'journeyDestDropdown', (d) => { journeyDestData = d; });
+
+  // Default departure time: now + 1 hour
+  const now = new Date();
+  now.setHours(now.getHours() + 1, 0, 0, 0);
+  document.getElementById('journeyDeparture').value = now.toISOString().slice(0, 16);
 
   // Load default city (New York)
   loadWeather(40.7128, -74.0060, 'New York');

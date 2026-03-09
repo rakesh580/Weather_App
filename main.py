@@ -1,12 +1,13 @@
-import os
+import os, math
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import pytz, threading, webbrowser
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timedelta
+from typing import Optional, List
 import requests
+from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient, AsyncInferenceClient
 
@@ -16,6 +17,7 @@ load_dotenv()
 # API keys from environment
 API_KEY = os.getenv("OPENWEATHER_API_KEY")
 HF_API_KEY = os.getenv("HF_API_KEY")
+ORS_API_KEY = os.getenv("ORS_API_KEY")
 
 # Hugging Face Inference API config
 HF_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
@@ -40,10 +42,21 @@ app = FastAPI(title="SkyPulse Weather API", version="7.0")
 class ChatRequest(BaseModel):
     message: str
     timezone: Optional[str] = "America/New_York"
+    journey_context: Optional[dict] = None
 
 class ChatResponse(BaseModel):
     response: str
     timestamp: str
+
+class JourneyRequest(BaseModel):
+    origin_lat: float
+    origin_lon: float
+    origin_name: Optional[str] = ""
+    dest_lat: float
+    dest_lon: float
+    dest_name: Optional[str] = ""
+    departure_time: str  # ISO 8601
+    avg_speed_mph: Optional[float] = 60.0
 
 # Serve static frontend
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -229,6 +242,245 @@ def get_forecast_by_coords(lat: float, lon: float):
     }
 
 
+# ===== JOURNEY WEATHER CORRIDOR =====
+
+def haversine(lat1, lon1, lat2, lon2):
+    """Distance in km between two lat/lon points."""
+    R = 6371
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def sample_waypoints(coords, interval_km=128):
+    """Sample waypoints along a route at regular distance intervals."""
+    waypoints = [coords[0]]
+    accumulated = 0.0
+    for i in range(1, len(coords)):
+        d = haversine(coords[i - 1][0], coords[i - 1][1], coords[i][0], coords[i][1])
+        accumulated += d
+        if accumulated >= interval_km:
+            waypoints.append(coords[i])
+            accumulated = 0.0
+    # Always include destination
+    if waypoints[-1] != coords[-1]:
+        waypoints.append(coords[-1])
+    return waypoints
+
+
+def interpolate_waypoints(lat1, lon1, lat2, lon2, interval_km=128):
+    """Fallback: generate waypoints along a straight line (no routing API)."""
+    total = haversine(lat1, lon1, lat2, lon2)
+    n = max(2, int(total / interval_km) + 1)
+    points = []
+    for i in range(n + 1):
+        frac = i / n
+        lat = lat1 + (lat2 - lat1) * frac
+        lon = lon1 + (lon2 - lon1) * frac
+        points.append([lat, lon])
+    return points
+
+
+def classify_weather(weather_id):
+    """Classify weather severity and assign color."""
+    if weather_id >= 200 and weather_id < 300:
+        return "storm", "#ef4444"
+    elif weather_id >= 300 and weather_id < 600:
+        return "rain", "#f59e0b"
+    elif weather_id >= 600 and weather_id < 700:
+        return "snow", "#f97316"
+    elif weather_id >= 700 and weather_id < 800:
+        return "fog", "#f97316"
+    elif weather_id == 800:
+        return "clear", "#22c55e"
+    else:
+        return "clouds", "#22c55e"
+
+
+def find_closest_forecast(forecast_list, target_ts):
+    """Find the forecast entry closest to a target Unix timestamp."""
+    closest = min(forecast_list, key=lambda e: abs(e["dt"] - target_ts))
+    gap = abs(closest["dt"] - target_ts)
+    return closest, gap < 5400  # reliable if within 1.5 hours
+
+
+def fetch_waypoint_forecast(lat, lon):
+    """Fetch forecast for a single waypoint."""
+    url = "https://api.openweathermap.org/data/2.5/forecast"
+    params = {"lat": lat, "lon": lon, "appid": API_KEY, "units": "imperial"}
+    response = requests.get(url, params=params, timeout=10)
+    if response.status_code == 200:
+        return response.json().get("list", [])
+    return []
+
+
+def reverse_geocode(lat, lon):
+    """Get city name from coordinates."""
+    try:
+        url = "http://api.openweathermap.org/geo/1.0/reverse"
+        params = {"lat": lat, "lon": lon, "limit": 1, "appid": API_KEY}
+        r = requests.get(url, params=params, timeout=5)
+        if r.status_code == 200 and r.json():
+            return r.json()[0].get("name", "Waypoint")
+    except Exception:
+        pass
+    return "Waypoint"
+
+
+@app.post("/api/journey")
+def plan_journey(req: JourneyRequest):
+    """Plan a journey and get weather forecasts along the route."""
+    if not API_KEY:
+        return {"error": "OpenWeatherMap API key not configured"}
+
+    departure_dt = datetime.fromisoformat(req.departure_time)
+    departure_ts = departure_dt.timestamp()
+
+    # Step 1: Get route from OpenRouteService (or fallback to straight line)
+    route_coords = []
+    total_distance_m = 0
+    total_duration_s = 0
+    used_ors = False
+
+    if ORS_API_KEY:
+        try:
+            ors_url = "https://api.openrouteservice.org/v2/directions/driving-car"
+            ors_params = {
+                "api_key": ORS_API_KEY,
+                "start": f"{req.origin_lon},{req.origin_lat}",
+                "end": f"{req.dest_lon},{req.dest_lat}"
+            }
+            ors_resp = requests.get(ors_url, params=ors_params, timeout=10)
+            if ors_resp.status_code == 200:
+                ors_data = ors_resp.json()
+                feature = ors_data["features"][0]
+                # ORS returns [lon, lat] — convert to [lat, lon]
+                raw_coords = feature["geometry"]["coordinates"]
+                route_coords = [[c[1], c[0]] for c in raw_coords]
+                total_distance_m = feature["properties"]["summary"]["distance"]
+                total_duration_s = feature["properties"]["summary"]["duration"]
+                used_ors = True
+        except Exception:
+            pass
+
+    # Fallback: straight-line interpolation
+    if not route_coords:
+        total_distance_m = haversine(req.origin_lat, req.origin_lon, req.dest_lat, req.dest_lon) * 1000
+        total_duration_s = (total_distance_m / 1609.34) / req.avg_speed_mph * 3600
+        route_coords = interpolate_waypoints(req.origin_lat, req.origin_lon, req.dest_lat, req.dest_lon)
+
+    total_distance_miles = total_distance_m / 1609.34
+    total_duration_hours = total_duration_s / 3600
+
+    # Step 2: Sample waypoints
+    if used_ors and len(route_coords) > 2:
+        wp_coords = sample_waypoints(route_coords, interval_km=128)
+    else:
+        wp_coords = route_coords
+
+    # Step 3: Calculate arrival time + fetch forecasts for each waypoint
+    # Compute cumulative distances for timing
+    total_route_dist = 0
+    cum_distances = [0]
+    for i in range(1, len(route_coords)):
+        total_route_dist += haversine(route_coords[i - 1][0], route_coords[i - 1][1],
+                                       route_coords[i][0], route_coords[i][1])
+        cum_distances.append(total_route_dist)
+
+    # Map each waypoint to cumulative distance along the route
+    def waypoint_cum_dist(wp):
+        # Find closest route point
+        min_d = float('inf')
+        best_cum = 0
+        for j, rc in enumerate(route_coords):
+            d = haversine(wp[0], wp[1], rc[0], rc[1])
+            if d < min_d:
+                min_d = d
+                best_cum = cum_distances[j]
+        return best_cum
+
+    # Fetch forecasts in parallel
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        forecast_futures = {i: executor.submit(fetch_waypoint_forecast, wp[0], wp[1])
+                           for i, wp in enumerate(wp_coords)}
+        wp_forecasts = {i: f.result() for i, f in forecast_futures.items()}
+
+    # Reverse geocode waypoints (origin/dest use provided names, others get geocoded)
+    waypoints = []
+    for i, wp in enumerate(wp_coords):
+        # Calculate arrival time
+        wp_dist = waypoint_cum_dist(wp)
+        if total_route_dist > 0:
+            frac = wp_dist / total_route_dist
+        else:
+            frac = i / max(1, len(wp_coords) - 1)
+        arrival_ts = departure_ts + frac * total_duration_s
+        arrival_dt = datetime.fromtimestamp(arrival_ts)
+
+        # Determine name
+        if i == 0:
+            name = req.origin_name or reverse_geocode(wp[0], wp[1])
+        elif i == len(wp_coords) - 1:
+            name = req.dest_name or reverse_geocode(wp[0], wp[1])
+        else:
+            name = reverse_geocode(wp[0], wp[1])
+
+        # Match forecast
+        fc_list = wp_forecasts.get(i, [])
+        if fc_list:
+            fc_entry, reliable = find_closest_forecast(fc_list, int(arrival_ts))
+            weather = {
+                "temperature": fc_entry["main"]["temp"],
+                "humidity": fc_entry["main"]["humidity"],
+                "wind_speed": fc_entry["wind"]["speed"],
+                "description": fc_entry["weather"][0]["description"],
+                "weather_id": fc_entry["weather"][0]["id"],
+                "weather_icon": fc_entry["weather"][0].get("icon", "01d")
+            }
+            severity, color = classify_weather(fc_entry["weather"][0]["id"])
+        else:
+            weather = {"temperature": 0, "humidity": 0, "wind_speed": 0,
+                       "description": "no data", "weather_id": 800, "weather_icon": "01d"}
+            severity, color = "unknown", "#9ca3af"
+
+        waypoints.append({
+            "lat": wp[0],
+            "lon": wp[1],
+            "name": name,
+            "distance_from_origin_miles": round(wp_dist * 0.621371, 1),
+            "estimated_arrival": arrival_dt.isoformat(),
+            "weather": weather,
+            "severity": severity,
+            "color": color
+        })
+
+    # Step 4: Build segments between consecutive waypoints
+    segments = []
+    for i in range(len(waypoints) - 1):
+        wp_a = waypoints[i]
+        wp_b = waypoints[i + 1]
+        # Use worst severity between the two waypoints
+        severity_rank = {"clear": 0, "clouds": 0, "unknown": 1, "fog": 2, "rain": 3, "snow": 4, "storm": 5}
+        worst = wp_a if severity_rank.get(wp_a["severity"], 0) >= severity_rank.get(wp_b["severity"], 0) else wp_b
+        # Get route coords between these two waypoints
+        seg_coords = [[wp_a["lat"], wp_a["lon"]], [wp_b["lat"], wp_b["lon"]]]
+        segments.append({
+            "coords": seg_coords,
+            "color": worst["color"],
+            "severity": worst["severity"]
+        })
+
+    return {
+        "route_coords": route_coords,
+        "total_distance_miles": round(total_distance_miles, 1),
+        "total_duration_hours": round(total_duration_hours, 1),
+        "waypoints": waypoints,
+        "segments": segments,
+        "used_real_route": used_ors
+    }
+
+
 # Helper: fetch live weather for chat
 def get_current_weather_for_chat(zone: str) -> Optional[dict]:
     try:
@@ -278,7 +530,10 @@ async def chat_endpoint(request: ChatRequest):
 
         # Build contextual prompt
         system_msg = "You are SkyPulse AI, a friendly weather assistant. Respond conversationally and briefly."
-        user_msg = f'The user asked: "{request.message}"\nCurrent weather context: {weather_data}'
+        journey_info = ""
+        if request.journey_context:
+            journey_info = f"\nJourney weather corridor data: {request.journey_context}"
+        user_msg = f'The user asked: "{request.message}"\nCurrent weather context: {weather_data}{journey_info}'
 
         response = await hf_async_client.chat.completions.create(
             model=HF_MODEL,

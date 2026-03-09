@@ -124,6 +124,47 @@
     </div>
   </div>
 
+  <!-- Journey Weather Corridor -->
+  <div class="section-header" style="margin-top: 24px;">
+    <span class="section-title"><i class="fa-solid fa-route"></i> Journey Weather Corridor</span>
+  </div>
+  <div class="journey-section glass-card" id="journeySection">
+    <div class="journey-form">
+      <div class="journey-input-row">
+        <div class="journey-field">
+          <label>Origin</label>
+          <input type="text" id="journeyOrigin" placeholder="From city..." autocomplete="off">
+          <div class="journey-dropdown" id="journeyOriginDropdown"></div>
+        </div>
+        <div class="journey-field">
+          <label>Destination</label>
+          <input type="text" id="journeyDest" placeholder="To city..." autocomplete="off">
+          <div class="journey-dropdown" id="journeyDestDropdown"></div>
+        </div>
+        <div class="journey-field journey-field-time">
+          <label>Departure</label>
+          <input type="datetime-local" id="journeyDeparture">
+        </div>
+        <button class="journey-go-btn" id="journeyGoBtn" onclick="planJourney()">
+          <i class="fa-solid fa-road"></i> Plan Route
+        </button>
+      </div>
+    </div>
+    <!-- Journey Results -->
+    <div id="journeyResults" class="hidden">
+      <div class="journey-summary" id="journeySummary"></div>
+      <div class="journey-map-container">
+        <div id="journeyMap"></div>
+      </div>
+      <div class="journey-timeline-scroll">
+        <div class="journey-timeline" id="journeyTimeline"></div>
+      </div>
+    </div>
+    <div id="journeyLoading" class="hidden">
+      <div class="skeleton" style="height: 200px; border-radius: 16px;"></div>
+    </div>
+  </div>
+
   <footer class="app-footer">
     SkyPulse &mdash; Built with FastAPI, Hugging Face AI, OpenWeatherMap, Leaflet & Chart.js
   </footer>
