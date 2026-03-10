@@ -9,3 +9,5 @@ services:
         sync: false
       - key: HF_API_KEY
         sync: false
+      - key: ORS_API_KEY
+        sync: false

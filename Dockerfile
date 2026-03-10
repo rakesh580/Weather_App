@@ -1,4 +1,12 @@
-# Stage 1: Builder
+# Stage 1: Build frontend
+FROM node:20-slim AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Python builder
 FROM python:3.10-slim AS builder
 
 # Install build dependencies
@@ -13,7 +21,7 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements-production.txt
 
 
-# Stage 2: Runtime
+# Stage 3: Runtime
 FROM python:3.10-slim
 
 # Install curl for healthcheck
@@ -30,6 +38,9 @@ WORKDIR /app
 
 # Copy application code
 COPY --chown=app:app . .
+
+# Copy built frontend from frontend-builder
+COPY --from=frontend-builder --chown=app:app /app/frontend/dist /app/frontend/dist
 
 # Switch to non-root user
 USER app

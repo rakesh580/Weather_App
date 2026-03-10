@@ -1,0 +1,23 @@
+.bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; min-height: 36px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--chip-bg);
+  backdrop-filter: blur(10px);
+  color: var(--chip-text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid var(--neon-border);
+}
+.chip:hover {
+  background: rgba(255, 107, 53, 0.18);
+  box-shadow: var(--neon-glow);
+}
+[data-theme="dark"] .chip:hover { background: rgba(0, 245, 255, 0.12); }
+.remove {
+  font-size: 14px; opacity: 0.6; cursor: pointer; margin-left: 2px;
+  background: none; border: none; color: inherit;
+}
+.remove:hover { opacity: 1; color: var(--danger); }

@@ -1,0 +1,34 @@
+.section {
+  display: flex; align-items: center; gap: 24px;
+  margin-bottom: 24px; padding: 20px 24px;
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow), inset 0 0 0 1px var(--neon-border);
+  transition: all 0.3s ease;
+}
+.section:hover {
+  box-shadow: var(--card-hover-shadow), var(--neon-glow);
+}
+.svg {
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px var(--accent));
+}
+.right { flex: 1; }
+.status { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--chip-bg);
+  border: 1px solid var(--neon-border);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .section { flex-direction: column; text-align: center; }
+  .chips { justify-content: center; }
+}

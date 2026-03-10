@@ -10,5 +10,6 @@ node_modules/
 public/
 netlify/
 netlify.toml
-package.json
+/package.json
 docker-compose.yml
+frontend/dist/

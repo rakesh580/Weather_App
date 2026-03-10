@@ -1,0 +1,74 @@
+.hero {
+  text-align: center;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+/* Scan line overlay */
+.hero::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.4;
+  animation: scanLine 4s linear infinite;
+  pointer-events: none;
+}
+.heroIcon { font-size: 80px; margin-bottom: 8px; display: inline-block; }
+.heroTemp {
+  font-size: 4.5rem; font-weight: 800;
+  color: var(--text-primary);
+  text-shadow: var(--neon-text-glow);
+  animation: neonTextPulse 3s ease-in-out infinite;
+  line-height: 1;
+  letter-spacing: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.unit { font-size: 1.5rem; font-weight: 400; opacity: 0.7; vertical-align: top; }
+.heroDesc {
+  font-size: 1.2rem; color: var(--text-primary);
+  opacity: 0.9; text-transform: capitalize; margin-top: 4px;
+}
+.heroCity { font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin-top: 8px; }
+.countryBadge {
+  font-size: 0.75rem; background: rgba(255,255,255,0.2);
+  padding: 2px 8px; border-radius: 12px; margin-left: 8px; vertical-align: middle;
+  border: 1px solid var(--neon-border);
+}
+[data-theme="dark"] .countryBadge { background: rgba(0, 245, 255, 0.08); }
+.heroTime {
+  font-size: 1rem; color: var(--text-secondary);
+  letter-spacing: 2px; font-variant-numeric: tabular-nums; margin-top: 6px;
+}
+.actions { margin-top: 12px; display: flex; justify-content: center; gap: 12px; }
+.favBtn {
+  background: none; border: none; font-size: 24px;
+  cursor: pointer; color: var(--text-primary); transition: all 0.3s ease;
+}
+.favBtn:hover { transform: scale(1.2); }
+.favBtnActive { color: var(--heart-color); text-shadow: 0 0 10px var(--heart-color); }
+
+/* Sun bar */
+.sunBar { margin-top: 14px; width: 260px; margin-left: auto; margin-right: auto; }
+.sunTrack {
+  height: 4px; background: rgba(255,255,255,0.15);
+  border-radius: 2px; position: relative; margin-bottom: 6px;
+}
+[data-theme="dark"] .sunTrack { background: rgba(255,255,255,0.08); }
+.sunDot {
+  position: absolute; width: 14px; height: 14px;
+  background: #fdc830; border-radius: 50%;
+  top: -5px;
+  box-shadow: 0 0 10px rgba(253,200,48,0.6), 0 0 20px rgba(253,200,48,0.3);
+  transition: left 1s linear;
+}
+.sunLabels {
+  display: flex; justify-content: space-between;
+  font-size: 0.7rem; color: var(--text-muted);
+}
+
+@media (max-width: 600px) {
+  .heroTemp { font-size: 3.5rem; }
+}

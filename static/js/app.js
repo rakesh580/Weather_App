@@ -835,7 +835,7 @@ function renderJourneyTimeline(data) {
     // Connector color uses the next segment's color
     const connColor = i < data.segments.length ? data.segments[i].color : 'transparent';
 
-    return `<div class="journey-wp-card" style="border-top: 3px solid ${wp.color}; ${i < data.waypoints.length - 1 ? '--conn-color:' + connColor : ''}">
+    return `<div class="journey-wp-card" style="border-top: 3px solid ${wp.color}; ${i < data.waypoints.length - 1 ? '--conn-color: ' + connColor + ';' : ''}">
       <div class="journey-wp-name">${wp.name}</div>
       <div class="journey-wp-time">${time} &middot; ${date}</div>
       <div class="journey-wp-icon">${icon}</div>

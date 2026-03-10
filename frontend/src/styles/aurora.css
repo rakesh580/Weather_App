@@ -1,0 +1,95 @@
+/* ===== Nebula Storm Design System — Global Styles ===== */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-primary);
+  background-size: 400% 400%;
+  animation: nebulaShift 20s ease infinite;
+  min-height: 100vh;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+  padding-bottom: 100px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism card with neon inner edge */
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-lg);
+  border: var(--glass-border);
+  box-shadow: var(--card-shadow), inset 0 0 0 1px var(--neon-border);
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+.glass-card:hover {
+  box-shadow: var(--card-hover-shadow), var(--neon-glow);
+  border-color: var(--neon-border);
+}
+[data-theme="dark"] .glass-card:hover {
+  background: rgba(10, 10, 30, 0.9);
+}
+
+/* HUD card with corner brackets */
+.hud-card {
+  position: relative;
+}
+.hud-card::before,
+.hud-card::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+}
+.hud-card::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--hud-bracket-color);
+  border-left: 2px solid var(--hud-bracket-color);
+}
+.hud-card::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--hud-bracket-color);
+  border-right: 2px solid var(--hud-bracket-color);
+}
+
+/* Section header HUD style */
+.section-header-hud {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section-header-hud::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--hud-bracket-color), transparent);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  opacity: 0.6;
+}
+::-webkit-scrollbar-thumb:hover {
+  opacity: 1;
+}
+
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg, var(--skeleton-from) 25%, var(--skeleton-to) 50%, var(--skeleton-from) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-lg);
+}
+
+/* Hidden util */
+.hidden { display: none !important; }

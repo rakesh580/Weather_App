@@ -1,0 +1,11 @@
+.section { margin-bottom: 24px; }
+.map {
+  height: 300px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--neon-border);
+  box-shadow: var(--neon-glow);
+  z-index: 1;
+}
+@media (max-width: 600px) {
+  .map { height: 220px; }
+}

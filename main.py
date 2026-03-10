@@ -58,13 +58,23 @@ class JourneyRequest(BaseModel):
     departure_time: str  # ISO 8601
     avg_speed_mph: Optional[float] = 60.0
 
-# Serve static frontend
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Serve React frontend from frontend/dist if it exists, else fall back to static/
+FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "frontend", "dist")
 
-@app.get("/")
-def serve_frontend():
-    """Serve the main HTML page"""
-    return FileResponse("static/index.html")
+if os.path.isdir(FRONTEND_DIST):
+    # Production: serve the React build
+    app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")), name="assets")
+
+    @app.get("/")
+    def serve_frontend():
+        return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+else:
+    # Fallback: serve legacy static frontend
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+    @app.get("/")
+    def serve_frontend():
+        return FileResponse("static/index.html")
 
 
 # WEATHER ENDPOINTS
@@ -253,6 +263,82 @@ def haversine(lat1, lon1, lat2, lon2):
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+def calculate_bearing(lat1, lon1, lat2, lon2):
+    """Calculate initial bearing (0-360°) from point 1 to point 2."""
+    lat1, lat2 = math.radians(lat1), math.radians(lat2)
+    dlon = math.radians(lon2 - lon1)
+    x = math.sin(dlon) * math.cos(lat2)
+    y = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dlon)
+    bearing = math.degrees(math.atan2(x, y))
+    return (bearing + 360) % 360
+
+
+def calc_sunrise_sunset(lat, lon, date):
+    """Pure Python sunrise/sunset calculation using solar position.
+    Returns (sunrise_iso, sunset_iso) strings in UTC."""
+    from datetime import timezone
+    # Julian day
+    a_val = (14 - date.month) // 12
+    y = date.year + 4800 - a_val
+    m = date.month + 12 * a_val - 3
+    jdn = date.day + (153 * m + 2) // 5 + 365 * y + y // 4 - y // 100 + y // 400 - 32045
+    n = jdn - 2451545 + 0.5  # days since J2000
+
+    # Mean solar noon
+    j_star = n - lon / 360.0
+    # Solar mean anomaly
+    M = (357.5291 + 0.98560028 * j_star) % 360
+    M_rad = math.radians(M)
+    # Equation of center
+    C = 1.9148 * math.sin(M_rad) + 0.02 * math.sin(2 * M_rad) + 0.0003 * math.sin(3 * M_rad)
+    # Ecliptic longitude
+    lam = (M + C + 180 + 102.9372) % 360
+    lam_rad = math.radians(lam)
+    # Solar transit
+    j_transit = 2451545.0 + j_star + 0.0053 * math.sin(M_rad) - 0.0069 * math.sin(2 * lam_rad)
+    # Declination
+    sin_dec = math.sin(lam_rad) * math.sin(math.radians(23.4397))
+    cos_dec = math.cos(math.asin(sin_dec))
+    # Hour angle
+    lat_rad = math.radians(lat)
+    cos_omega = (math.sin(math.radians(-0.833)) - math.sin(lat_rad) * sin_dec) / (math.cos(lat_rad) * cos_dec)
+
+    if cos_omega > 1:
+        return None, None  # no sunrise (polar night)
+    if cos_omega < -1:
+        return None, None  # no sunset (midnight sun)
+
+    omega = math.degrees(math.acos(cos_omega))
+    j_rise = j_transit - omega / 360.0
+    j_set = j_transit + omega / 360.0
+
+    def jd_to_datetime(jd):
+        """Convert Julian date to datetime UTC."""
+        jd += 0.5
+        z = int(jd)
+        f = jd - z
+        if z < 2299161:
+            aa = z
+        else:
+            alpha = int((z - 1867216.25) / 36524.25)
+            aa = z + 1 + alpha - alpha // 4
+        bb = aa + 1524
+        cc = int((bb - 122.1) / 365.25)
+        dd = int(365.25 * cc)
+        ee = int((bb - dd) / 30.6001)
+        day = bb - dd - int(30.6001 * ee)
+        month = ee - 1 if ee < 14 else ee - 13
+        year = cc - 4716 if month > 2 else cc - 4715
+        hours_frac = f * 24
+        hour = int(hours_frac)
+        minute = int((hours_frac - hour) * 60)
+        return datetime(year, month, day, hour, minute, tzinfo=timezone.utc)
+
+    sunrise_dt = jd_to_datetime(j_rise)
+    sunset_dt = jd_to_datetime(j_set)
+    return sunrise_dt.isoformat(), sunset_dt.isoformat()
+
+
 def sample_waypoints(coords, interval_km=128):
     """Sample waypoints along a route at regular distance intervals."""
     waypoints = [coords[0]]
@@ -294,12 +380,16 @@ def classify_weather(weather_id):
         return "fog", "#f97316"
     elif weather_id == 800:
         return "clear", "#22c55e"
+    elif weather_id <= 802:
+        return "clouds", "#a3e635"   # light clouds — yellow-green
     else:
-        return "clouds", "#22c55e"
+        return "clouds", "#facc15"   # heavy overcast — yellow
 
 
 def find_closest_forecast(forecast_list, target_ts):
     """Find the forecast entry closest to a target Unix timestamp."""
+    if not forecast_list:
+        return None, False
     closest = min(forecast_list, key=lambda e: abs(e["dt"] - target_ts))
     gap = abs(closest["dt"] - target_ts)
     return closest, gap < 5400  # reliable if within 1.5 hours
@@ -349,20 +439,28 @@ def plan_journey(req: JourneyRequest):
             ors_params = {
                 "api_key": ORS_API_KEY,
                 "start": f"{req.origin_lon},{req.origin_lat}",
-                "end": f"{req.dest_lon},{req.dest_lat}"
+                "end": f"{req.dest_lon},{req.dest_lat}",
+                "elevation": "true"
             }
             ors_resp = requests.get(ors_url, params=ors_params, timeout=10)
             if ors_resp.status_code == 200:
                 ors_data = ors_resp.json()
+                if not ors_data.get("features"):
+                    raise ValueError("ORS returned no features")
                 feature = ors_data["features"][0]
-                # ORS returns [lon, lat] — convert to [lat, lon]
+                # ORS returns [lon, lat, elev] — convert to [lat, lon]
                 raw_coords = feature["geometry"]["coordinates"]
                 route_coords = [[c[1], c[0]] for c in raw_coords]
+                # Store elevations keyed by (lat, lon) for waypoint lookup
+                route_elevations = {(round(c[1], 5), round(c[0], 5)): c[2] * 3.28084 if len(c) > 2 else None for c in raw_coords}
                 total_distance_m = feature["properties"]["summary"]["distance"]
                 total_duration_s = feature["properties"]["summary"]["duration"]
                 used_ors = True
         except Exception:
             pass
+
+    if not used_ors:
+        route_elevations = {}
 
     # Fallback: straight-line interpolation
     if not route_coords:
@@ -428,21 +526,47 @@ def plan_journey(req: JourneyRequest):
 
         # Match forecast
         fc_list = wp_forecasts.get(i, [])
-        if fc_list:
-            fc_entry, reliable = find_closest_forecast(fc_list, int(arrival_ts))
+        fc_entry, reliable = find_closest_forecast(fc_list, int(arrival_ts))
+        if fc_entry:
             weather = {
                 "temperature": fc_entry["main"]["temp"],
                 "humidity": fc_entry["main"]["humidity"],
                 "wind_speed": fc_entry["wind"]["speed"],
                 "description": fc_entry["weather"][0]["description"],
                 "weather_id": fc_entry["weather"][0]["id"],
-                "weather_icon": fc_entry["weather"][0].get("icon", "01d")
+                "weather_icon": fc_entry["weather"][0].get("icon", "01d"),
+                "feels_like": fc_entry["main"].get("feels_like"),
+                "pressure": fc_entry["main"].get("pressure"),
+                "clouds_pct": fc_entry.get("clouds", {}).get("all", 0),
+                "visibility": fc_entry.get("visibility"),
+                "pop": fc_entry.get("pop", 0),
+                "wind_deg": fc_entry.get("wind", {}).get("deg"),
+                "rain_3h": fc_entry.get("rain", {}).get("3h", 0),
+                "snow_3h": fc_entry.get("snow", {}).get("3h", 0),
             }
             severity, color = classify_weather(fc_entry["weather"][0]["id"])
         else:
             weather = {"temperature": 0, "humidity": 0, "wind_speed": 0,
-                       "description": "no data", "weather_id": 800, "weather_icon": "01d"}
+                       "description": "no data", "weather_id": 800, "weather_icon": "01d",
+                       "feels_like": None, "pressure": None, "clouds_pct": 0,
+                       "visibility": None, "pop": 0, "wind_deg": None,
+                       "rain_3h": 0, "snow_3h": 0}
             severity, color = "unknown", "#9ca3af"
+
+        # Calculate route bearing to next waypoint
+        if i < len(wp_coords) - 1:
+            route_bearing = calculate_bearing(wp[0], wp[1], wp_coords[i + 1][0], wp_coords[i + 1][1])
+        elif i > 0:
+            route_bearing = calculate_bearing(wp_coords[i - 1][0], wp_coords[i - 1][1], wp[0], wp[1])
+        else:
+            route_bearing = 0
+
+        # Sunrise/sunset for this waypoint's location and arrival date
+        sunrise_iso, sunset_iso = calc_sunrise_sunset(wp[0], wp[1], arrival_dt.date())
+
+        # Elevation lookup from ORS data
+        wp_key = (round(wp[0], 5), round(wp[1], 5))
+        elevation_ft = route_elevations.get(wp_key)
 
         waypoints.append({
             "lat": wp[0],
@@ -452,7 +576,11 @@ def plan_journey(req: JourneyRequest):
             "estimated_arrival": arrival_dt.isoformat(),
             "weather": weather,
             "severity": severity,
-            "color": color
+            "color": color,
+            "route_bearing": round(route_bearing, 1),
+            "sunrise": sunrise_iso,
+            "sunset": sunset_iso,
+            "elevation_ft": round(elevation_ft) if elevation_ft is not None else None,
         })
 
     # Step 4: Build segments between consecutive waypoints
@@ -461,7 +589,7 @@ def plan_journey(req: JourneyRequest):
         wp_a = waypoints[i]
         wp_b = waypoints[i + 1]
         # Use worst severity between the two waypoints
-        severity_rank = {"clear": 0, "clouds": 0, "unknown": 1, "fog": 2, "rain": 3, "snow": 4, "storm": 5}
+        severity_rank = {"clear": 0, "clouds": 1, "unknown": 2, "fog": 3, "rain": 4, "snow": 5, "storm": 6}
         worst = wp_a if severity_rank.get(wp_a["severity"], 0) >= severity_rank.get(wp_b["severity"], 0) else wp_b
         # Get route coords between these two waypoints
         seg_coords = [[wp_a["lat"], wp_a["lon"]], [wp_b["lat"], wp_b["lon"]]]

@@ -1,0 +1,331 @@
+.section { padding: 20px; }
+.form { margin-bottom: 16px; }
+.inputRow { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.field { flex: 1; min-width: 150px; position: relative; }
+.fieldLabel {
+  display: block; font-size: 0.75rem; color: var(--text-muted);
+  margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.fieldInput {
+  width: 100%; padding: 10px 14px; border-radius: 12px;
+  border: 1px solid var(--input-border); background: var(--input-bg);
+  color: var(--input-text); font-size: 0.9rem; outline: none; transition: all 0.3s;
+}
+.fieldInput:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.fieldTime { flex: 0.8; }
+.goBtn {
+  padding: 10px 22px; border-radius: 12px; border: none;
+  background: var(--accent); color: white; font-weight: 600;
+  cursor: pointer; font-size: 0.9rem; transition: all 0.3s;
+  white-space: nowrap; height: 42px; display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.goBtn:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: var(--neon-glow); }
+.goBtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Journey dropdown */
+.dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--card-bg); backdrop-filter: var(--glass-blur);
+  border-radius: 12px; border: var(--glass-border);
+  box-shadow: var(--card-shadow), var(--neon-glow); z-index: 100; overflow: hidden;
+}
+[data-theme="dark"] .dropdown { background: rgba(8, 8, 20, 0.95); }
+.dropdownItem { padding: 10px 14px; font-size: 0.85rem; cursor: pointer;
+  color: var(--text-primary); border-bottom: 1px solid var(--card-border); transition: background 0.2s; }
+.dropdownItem:last-child { border-bottom: none; }
+.dropdownItem:hover { background: rgba(255,107,53,0.12); }
+[data-theme="dark"] .dropdownItem:hover { background: rgba(0, 245, 255, 0.1); }
+.dropdownName { font-weight: 600; }
+.dropdownDetail { font-size: 0.75rem; color: var(--text-muted); }
+
+/* Journey map */
+.mapContainer { margin-bottom: 16px; }
+.journeyMap {
+  height: 350px; border-radius: var(--radius-md);
+  border: 1px solid var(--neon-border);
+  box-shadow: var(--neon-glow);
+  z-index: 1;
+}
+
+/* Journey summary */
+.summary { margin-bottom: 14px; }
+.summaryRow {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 18px; background: var(--card-bg);
+  border: 1px solid var(--neon-border); border-radius: 14px;
+  font-size: 0.85rem; color: var(--text-primary); flex-wrap: wrap; gap: 10px;
+}
+[data-theme="dark"] .summaryRow { background: rgba(8, 8, 20, 0.9); }
+.status { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.stat { display: flex; align-items: center; gap: 4px; color: var(--text-secondary); }
+
+/* AI briefing */
+.aiBriefing {
+  margin-top: 10px; padding: 12px 16px;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  border-radius: 12px; font-size: 0.8rem;
+}
+[data-theme="dark"] .aiBriefing { background: rgba(8, 8, 20, 0.85); border-color: var(--neon-border); }
+.briefingHeader {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 700; color: var(--accent); margin-bottom: 8px; font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.regenerateBtn {
+  background: none; border: none; color: var(--text-muted);
+  cursor: pointer; font-size: 0.7rem; padding: 2px 6px; border-radius: 6px;
+  transition: color 0.2s;
+}
+.regenerateBtn:hover { color: var(--accent); }
+.briefingText { color: var(--text-secondary); line-height: 1.5; margin: 0; }
+.briefingSkeleton {
+  height: 36px; border-radius: 8px;
+  background: linear-gradient(90deg, var(--skeleton-from) 25%, var(--skeleton-to) 50%, var(--skeleton-from) 75%);
+  background-size: 200% 100%; animation: shimmer 1.5s infinite;
+}
+
+/* Journey timeline */
+.timelineScroll {
+  overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin;
+}
+.timeline { display: flex; gap: 0; min-width: max-content; align-items: stretch; padding: 4px 0; }
+.wpCard {
+  flex-shrink: 0; width: 130px; padding: 14px 12px;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  border-radius: 14px; text-align: center; position: relative;
+  margin-right: 36px; transition: all 0.3s;
+  overflow: hidden;
+}
+/* Holographic shimmer overlay on hover */
+.wpCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    transparent 30%,
+    rgba(255, 107, 53, 0.08) 50%,
+    transparent 70%
+  );
+  background-size: 200% 200%;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.wpCard:hover::before {
+  opacity: 1;
+  animation: holoShimmer 3s linear infinite;
+}
+[data-theme="dark"] .wpCard::before {
+  background: linear-gradient(
+    135deg,
+    transparent 30%,
+    rgba(0, 245, 255, 0.06) 50%,
+    transparent 70%
+  );
+  background-size: 200% 200%;
+}
+.wpCard:last-child { margin-right: 0; }
+.wpCard:hover { transform: translateY(-5px); border-color: var(--neon-border); box-shadow: var(--neon-glow); }
+[data-theme="dark"] .wpCard { background: rgba(8, 8, 20, 0.9); }
+[data-theme="dark"] .wpCard:hover { background: rgba(12, 12, 35, 0.95); }
+
+/* Connector line with marching ants */
+.wpCard:not(:last-child)::after {
+  content: ''; position: absolute; top: 50%; right: -36px;
+  width: 36px; height: 3px; border-radius: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--conn-color, var(--card-border)) 0px,
+    var(--conn-color, var(--card-border)) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  background-size: 8px 3px;
+  animation: marchingAnts 1s linear infinite;
+}
+
+.wpName { font-weight: 700; font-size: 0.8rem; color: var(--text-primary);
+  margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wpTime { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px; }
+.wpIcon { font-size: 1.6rem; margin-bottom: 6px; }
+.wpTemp { font-size: 1.1rem; font-weight: 800; color: var(--text-primary); }
+.wpDesc { font-size: 0.65rem; color: var(--text-muted); text-transform: capitalize; margin-top: 3px; }
+.wpDist { font-size: 0.65rem; color: var(--accent); margin-top: 5px; font-weight: 600; }
+.severityDot {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; margin-right: 4px; vertical-align: middle;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* Expanded card */
+.wpCardExpanded { width: 260px; }
+
+/* Precipitation bar */
+.precipBar {
+  position: relative; height: 6px; border-radius: 3px;
+  background: rgba(128,128,128,0.2); margin-top: 6px; overflow: hidden;
+}
+.precipFill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  transition: width 0.4s ease;
+}
+.precipText {
+  position: absolute; right: 0; top: -14px;
+  font-size: 0.6rem; color: #60a5fa; font-weight: 600;
+}
+
+/* Wind indicator */
+.windIndicator {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 0.65rem; color: var(--text-muted); margin-top: 4px;
+  justify-content: center;
+}
+.windArrow {
+  font-size: 0.7rem; color: var(--accent);
+  transition: transform 0.3s;
+}
+.windBadge {
+  font-size: 0.55rem; padding: 1px 5px; border-radius: 6px;
+  color: #fff; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+}
+
+/* Expand chevron */
+.expandChevron {
+  margin-top: 6px; font-size: 0.6rem; color: var(--text-muted);
+  opacity: 0.5; transition: opacity 0.2s;
+}
+.wpCard:hover .expandChevron { opacity: 1; }
+
+/* Detail grid (expanded card) */
+.detailGrid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 6px; margin-top: 10px; text-align: left; overflow: hidden;
+}
+.detailItem {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.65rem; color: var(--text-secondary);
+}
+.detailItem i { color: var(--accent); font-size: 0.7rem; width: 14px; text-align: center; }
+.drivingTip {
+  grid-column: 1 / -1; font-size: 0.6rem; color: var(--accent);
+  padding: 5px 8px; border-radius: 8px;
+  background: rgba(var(--accent-rgb, 255,107,53), 0.08);
+  margin-top: 4px; font-weight: 500;
+}
+.drivingTip i { margin-right: 4px; }
+
+/* Sparkline chart */
+.sparklineContainer {
+  height: 60px; margin-bottom: 12px; padding: 0 4px;
+}
+
+/* Map legend */
+.mapLegend {
+  display: flex; gap: 14px; justify-content: flex-end;
+  padding: 6px 12px; font-size: 0.7rem; color: var(--text-muted);
+}
+.legendItem { display: flex; align-items: center; gap: 5px; }
+.legendSwatch {
+  width: 14px; height: 6px; border-radius: 3px; display: inline-block;
+}
+
+/* Swap button */
+.swapBtn {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--card-border);
+  background: var(--card-bg); color: var(--accent); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; transition: all 0.3s; flex-shrink: 0; align-self: flex-end;
+  margin-bottom: 3px;
+}
+.swapBtn:hover { background: var(--accent); color: #fff; transform: rotate(180deg); box-shadow: var(--neon-glow); }
+
+/* Tool row & buttons */
+.toolRow { display: flex; gap: 8px; margin-top: 8px; }
+.toolBtn {
+  padding: 6px 14px; border-radius: 10px; border: 1px solid var(--card-border);
+  background: var(--card-bg); color: var(--text-secondary); cursor: pointer;
+  font-size: 0.75rem; font-weight: 600; transition: all 0.2s;
+  display: flex; align-items: center; gap: 5px;
+}
+.toolBtn:hover { border-color: var(--accent); color: var(--accent); }
+[data-theme="dark"] .toolBtn { background: rgba(8, 8, 20, 0.8); }
+
+/* Action bar (save/share) */
+.actionBar { display: flex; gap: 8px; margin-bottom: 12px; }
+
+/* History panel */
+.historyPanel { margin-bottom: 12px; }
+.historyToggle {
+  width: 100%; padding: 8px 14px; border-radius: 10px;
+  border: 1px solid var(--card-border); background: var(--card-bg);
+  color: var(--text-secondary); cursor: pointer; font-size: 0.75rem;
+  font-weight: 600; display: flex; align-items: center; gap: 6px;
+  transition: border-color 0.2s;
+}
+.historyToggle:hover { border-color: var(--accent); }
+[data-theme="dark"] .historyToggle { background: rgba(8, 8, 20, 0.8); }
+.historyList { margin-top: 6px; }
+.historyItem {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-bottom: 1px solid var(--card-border);
+  font-size: 0.78rem;
+}
+.historyRoute { flex: 1; cursor: pointer; color: var(--text-primary); }
+.historyRoute:hover { color: var(--accent); }
+.historyMeta { display: block; font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
+.historyDelete {
+  background: none; border: none; color: var(--text-muted); cursor: pointer;
+  font-size: 0.75rem; padding: 4px; border-radius: 6px;
+}
+.historyDelete:hover { color: #ef4444; }
+
+/* Compare panel */
+.comparePanel {
+  margin-bottom: 14px; padding: 14px;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  border-radius: 14px;
+}
+[data-theme="dark"] .comparePanel { background: rgba(8, 8, 20, 0.85); border-color: var(--neon-border); }
+.compareHeader {
+  font-weight: 700; font-size: 0.8rem; color: var(--accent);
+  margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.compareInputs {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px;
+}
+.compareInputs .fieldInput { max-width: 200px; }
+.compareTable { font-size: 0.75rem; }
+.compareRow {
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  padding: 6px 8px; border-bottom: 1px solid var(--card-border);
+  color: var(--text-secondary); gap: 4px;
+}
+.compareRow:first-child { color: var(--text-muted); border-bottom: 2px solid var(--card-border); }
+.compareBest {
+  background: rgba(34, 197, 94, 0.08); border-left: 3px solid #22c55e;
+  font-weight: 600; color: var(--text-primary);
+}
+
+/* Skeleton */
+.loadingSkeleton {
+  height: 200px; border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, var(--skeleton-from) 25%, var(--skeleton-to) 50%, var(--skeleton-from) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@media (max-width: 600px) {
+  .inputRow { flex-direction: column; }
+  .field { min-width: 100%; }
+  .fieldTime { flex: 1; }
+  .goBtn { width: 100%; justify-content: center; }
+  .journeyMap { height: 250px; }
+  .wpCard { width: 110px; }
+  .swapBtn { align-self: center; }
+  .compareInputs { flex-direction: column; }
+  .compareInputs .fieldInput { max-width: 100%; }
+  .compareRow { grid-template-columns: 1fr 1fr; gap: 2px; }
+}
