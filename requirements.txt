@@ -5,3 +5,5 @@ pytz
 python-dotenv
 huggingface_hub
 aiohttp
+slowapi
+cachetools
