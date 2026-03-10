@@ -91,8 +91,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "script-src 'self'; "
             "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
             "font-src 'self' https://cdnjs.cloudflare.com; "
-            "img-src 'self' data: https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org https://tile.openweathermap.org; "
-            "connect-src 'self' https://*.basemaps.cartocdn.com; "
+            "img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org https://tile.openweathermap.org; "
+            "connect-src 'self' https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org https://tile.openweathermap.org; "
             "frame-ancestors 'none'"
         )
         return response
