@@ -1,0 +1,208 @@
+/* Microclimate Card */
+.card {
+  border-radius: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.cardTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cardTitleIcon {
+  color: #818cf8;
+}
+
+.confidenceBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.confidenceHigh {
+  background: rgba(34,197,94,0.15);
+  color: #22c55e;
+}
+
+.confidenceMedium {
+  background: rgba(245,158,11,0.15);
+  color: #f59e0b;
+}
+
+.confidenceLow {
+  background: rgba(239,68,68,0.15);
+  color: #ef4444;
+}
+
+/* Temperature comparison */
+.tempCompare {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.tempBox {
+  text-align: center;
+}
+
+.tempValue {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+}
+
+.tempLabel {
+  font-size: 0.7rem;
+  color: var(--text-secondary, rgba(255,255,255,0.5));
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tempArrow {
+  font-size: 1.2rem;
+  color: rgba(255,255,255,0.3);
+}
+
+.tempDiff {
+  text-align: center;
+}
+
+.tempDiffValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.tempDiffWarm {
+  color: #ef4444;
+}
+
+.tempDiffCool {
+  color: #3b82f6;
+}
+
+.tempDiffNeutral {
+  color: #22c55e;
+}
+
+.tempDiffLabel {
+  font-size: 0.65rem;
+  color: var(--text-secondary, rgba(255,255,255,0.5));
+}
+
+/* Correction breakdown bar */
+.breakdownTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary, rgba(255,255,255,0.6));
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.breakdownList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.breakdownItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.breakdownLabel {
+  font-size: 0.8rem;
+  color: var(--text-primary, #fff);
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.breakdownBarTrack {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.breakdownBarFill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.breakdownBarWarm {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+
+.breakdownBarCool {
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+}
+
+.breakdownValue {
+  font-size: 0.75rem;
+  font-weight: 600;
+  width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.breakdownDetail {
+  font-size: 0.65rem;
+  color: var(--text-secondary, rgba(255,255,255,0.4));
+  width: 130px;
+  flex-shrink: 0;
+}
+
+/* Explanation */
+.explanation {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary, rgba(255,255,255,0.6));
+  line-height: 1.5;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Inline tooltip badge */
+.inlineBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  background: rgba(99,102,241,0.12);
+  color: #a5b4fc;
+}
+
+.inlineBadge:hover {
+  background: rgba(99,102,241,0.2);
+}

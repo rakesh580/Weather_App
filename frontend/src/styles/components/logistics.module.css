@@ -1,0 +1,347 @@
+/* Logistics Optimizer */
+.container {
+  padding: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary, rgba(255,255,255,0.6));
+}
+
+/* Stop entry form */
+.stopsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.stopRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+}
+
+.stopNumber {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(99,102,241,0.2);
+  color: #818cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.stopInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.stopDuration {
+  width: 70px;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-primary, #fff);
+  font-size: 0.8rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.stopDuration::placeholder {
+  color: rgba(255,255,255,0.3);
+}
+
+.stopRemove {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.3);
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.stopRemove:hover {
+  color: #ef4444;
+}
+
+.addStopBtn {
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px dashed rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s;
+}
+
+.addStopBtn:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7);
+}
+
+.addStopBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Time input */
+.timeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.timeLabel {
+  font-size: 0.85rem;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+}
+
+.timeInput {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-primary, #fff);
+  font-size: 0.85rem;
+}
+
+.optimizeBtn {
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+  transition: transform 0.15s;
+}
+
+.optimizeBtn:hover {
+  transform: translateY(-1px);
+}
+
+.optimizeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Results */
+.results {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.briefing {
+  padding: 1rem 1.25rem;
+  border-radius: 14px;
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.2);
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+  color: var(--text-primary, #fff);
+  line-height: 1.5;
+}
+
+.briefingIcon {
+  margin-right: 0.5rem;
+  color: #818cf8;
+}
+
+/* Comparison card */
+.comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.compCard {
+  padding: 1rem;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  text-align: center;
+}
+
+.compCardOptimized {
+  border-color: rgba(34,197,94,0.3);
+  background: rgba(34,197,94,0.06);
+}
+
+.compLabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, rgba(255,255,255,0.5));
+  margin-bottom: 0.5rem;
+}
+
+.compPenalty {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+}
+
+.compImprovement {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #22c55e;
+  margin-top: 0.25rem;
+}
+
+/* Optimized stops list */
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.optimizedStops {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.optimizedStop {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.optimizedStopNumber {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.optimizedStopInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.optimizedStopName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+.optimizedStopTime {
+  font-size: 0.75rem;
+  color: var(--text-secondary, rgba(255,255,255,0.5));
+}
+
+.optimizedStopWeather {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.optimizedStopTemp {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+.optimizedStopDesc {
+  font-size: 0.7rem;
+  color: var(--text-secondary, rgba(255,255,255,0.5));
+  text-transform: capitalize;
+}
+
+.scoreBadge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 8px;
+  display: inline-block;
+  margin-top: 0.2rem;
+}
+
+.scoreClear {
+  background: rgba(34,197,94,0.15);
+  color: #22c55e;
+}
+
+.scoreGood {
+  background: rgba(163,230,53,0.15);
+  color: #a3e635;
+}
+
+.scoreFair {
+  background: rgba(245,158,11,0.15);
+  color: #f59e0b;
+}
+
+.scorePoor {
+  background: rgba(239,68,68,0.15);
+  color: #ef4444;
+}
+
+/* Loading */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: var(--text-secondary, rgba(255,255,255,0.6));
+}
+
+.loadingSpinner {
+  font-size: 1.5rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

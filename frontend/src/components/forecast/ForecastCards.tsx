@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import { getWeatherIcon } from '../../utils/weatherIcons';
+import { useWeather } from '../../context/WeatherContext';
+import { convertTemp } from '../../utils/tempUtils';
 import type { ForecastEntry } from '../../types/weather';
 import s from '../../styles/components/forecast.module.css';
 
@@ -16,6 +18,7 @@ const itemVariants = {
 };
 
 export default function ForecastCards({ entries }: Props) {
+  const { unit } = useWeather();
   return (
     <motion.div
       className={s.scroll}
@@ -38,7 +41,12 @@ export default function ForecastCards({ entries }: Props) {
           >
             <div className={s.fcTime}>{day} {time}</div>
             <div className={s.fcIcon}><i className={`${icon.iconClass} ${icon.animClass}`} /></div>
-            <div className={s.fcTemp}>{Math.round(e.temperature)}&deg;F</div>
+            <div className={s.fcTemp}>{convertTemp(e.temperature, unit)}&deg;{unit}</div>
+            {(e.pop ?? 0) > 0 && (
+              <div className={s.fcPop}>
+                <i className="fa-solid fa-droplet" /> {Math.round((e.pop ?? 0) * 100)}%
+              </div>
+            )}
             <div className={s.fcDesc}>{e.weather}</div>
           </motion.div>
         );

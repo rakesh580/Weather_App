@@ -52,15 +52,18 @@ export default function JourneySparkline({ data }: Props) {
         },
         grid: { display: false },
       },
-      y: {
-        display: false,
-      },
+      y: { display: false },
     },
   };
 
   return (
     <div className={s.sparklineContainer}>
-      <Line data={chartData} options={options} />
+      <div className={s.sparklineHeader}>
+        <i className="fa-solid fa-temperature-half" /> Temperature Along Route
+      </div>
+      <div className={s.sparklineChart}>
+        <Line data={chartData} options={options} />
+      </div>
     </div>
   );
 }

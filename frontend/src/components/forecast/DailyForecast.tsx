@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { aggregateDailyForecast } from '../../utils/forecastAggregator';
 import { getWeatherIcon } from '../../utils/weatherIcons';
+import { useWeather } from '../../context/WeatherContext';
+import { convertTemp } from '../../utils/tempUtils';
 import type { ForecastEntry } from '../../types/weather';
 import s from '../../styles/components/forecast.module.css';
 
@@ -18,6 +20,7 @@ const itemVariants = {
 };
 
 export default function DailyForecast({ entries }: Props) {
+  const { unit } = useWeather();
   const days = useMemo(() => aggregateDailyForecast(entries), [entries]);
 
   const allTemps = days.flatMap(d => [d.high, d.low]);
@@ -41,12 +44,18 @@ export default function DailyForecast({ entries }: Props) {
           <motion.div key={i} className={s.dailyCard} variants={itemVariants}>
             <div className={s.dailyDay}>{d.weekday}</div>
             <div className={s.dailyIcon}><i className={`${icon.iconClass} ${icon.animClass}`} /></div>
+            {d.pop > 0 && (
+              <div className={s.dailyPop}>
+                <i className="fa-solid fa-droplet" /> {d.pop}%
+              </div>
+            )}
+            {d.pop === 0 && <div className={s.dailyPop} />}
             <div className={s.dailyTemps}>
-              <span className={s.dailyHigh}>{d.high}&deg;</span>
+              <span className={s.dailyHigh}>{convertTemp(d.high, unit)}&deg;</span>
               <div className={s.dailyTempBar}>
                 <div className={s.dailyTempFill} style={{ marginLeft: `${barLeft}%`, width: `${barWidth}%` }} />
               </div>
-              <span className={s.dailyLow}>{d.low}&deg;</span>
+              <span className={s.dailyLow}>{convertTemp(d.low, unit)}&deg;</span>
             </div>
             <div className={s.dailyDesc}>{d.weather}</div>
           </motion.div>

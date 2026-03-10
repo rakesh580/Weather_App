@@ -9,6 +9,7 @@ interface DayBucket {
   weatherIcons: string[];
   weatherDescs: string[];
   winds: number[];
+  pops: number[];
 }
 
 export function aggregateDailyForecast(entries: ForecastEntry[]): DailyForecast[] {
@@ -22,7 +23,7 @@ export function aggregateDailyForecast(entries: ForecastEntry[]): DailyForecast[
         key,
         weekday: date.toLocaleDateString('en-US', { weekday: 'short' }),
         temps: [], humidities: [], weatherIds: [],
-        weatherIcons: [], weatherDescs: [], winds: [],
+        weatherIcons: [], weatherDescs: [], winds: [], pops: [],
       };
     }
     days[key].temps.push(e.temperature);
@@ -31,6 +32,7 @@ export function aggregateDailyForecast(entries: ForecastEntry[]): DailyForecast[
     days[key].weatherIcons.push(e.weather_icon);
     days[key].weatherDescs.push(e.weather);
     days[key].winds.push(e.wind_speed);
+    days[key].pops.push(e.pop ?? 0);
   });
 
   return Object.values(days).slice(0, 5).map(d => {
@@ -51,6 +53,7 @@ export function aggregateDailyForecast(entries: ForecastEntry[]): DailyForecast[
       weather_id: dominantId,
       weather_icon: d.weatherIcons[dominantIdx] || d.weatherIcons[0],
       weather: d.weatherDescs[dominantIdx] || d.weatherDescs[0],
+      pop: Math.round(Math.max(...d.pops) * 100),
     };
   });
 }

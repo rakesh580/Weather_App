@@ -9,47 +9,20 @@
 .cloud { width: 30px; height: 12px; border-radius: 10px; background: rgba(255,255,255,0.08); animation: driftCloud linear infinite; }
 .mist { width: 50px; height: 2px; border-radius: 2px; background: rgba(255,255,255,0.12); animation: driftCloud linear infinite; }
 
-/* Nebula Storm — New particle types */
-.energyWisp {
-  width: 3px; height: 3px;
+/* Nature particle types */
+.leaf {
+  width: 6px; height: 4px;
+  border-radius: 40% 60% 40% 60%;
+  background: #8B9E6B;
+  animation: leafDrift 6s ease-in-out infinite;
+}
+.firefly {
+  width: 4px; height: 4px;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 6px var(--accent), 0 0 12px var(--accent);
-  animation: energyFloat 6s ease-in-out infinite;
-}
-.glowOrb {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: glowOrbPulse 4s ease-in-out infinite;
-}
-
-/* Scanner sweep overlay */
-.scannerOverlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-.scannerGradient {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 150vmax;
-  height: 150vmax;
-  margin-top: -75vmax;
-  margin-left: -75vmax;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    var(--scanner-color) 10deg,
-    transparent 60deg
-  );
-  animation: scannerSweep 8s linear infinite;
-  opacity: 0.3;
+  background: #f0d878;
+  animation: fireflyGlow 4s ease-in-out infinite;
 }
 
 [data-theme="dark"] .particle { opacity: 0.5; }
-[data-theme="dark"] .energyWisp { opacity: 0.7; }
-[data-theme="dark"] .glowOrb { opacity: 0.6; }
+[data-theme="dark"] .leaf { opacity: 0.4; }
+[data-theme="dark"] .firefly { opacity: 0.8; }

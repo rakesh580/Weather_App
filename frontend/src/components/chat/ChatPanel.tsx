@@ -40,7 +40,7 @@ export default function ChatPanel({ open, onClose, journeyData }: Props) {
         })),
       } : null;
 
-      const res = await sendChatMessage({ message: text, timezone: 'America/New_York', journey_context: journeyCtx });
+      const res = await sendChatMessage({ message: text, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, journey_context: journeyCtx });
       setMessages(m => [...m, { text: res.response, sender: 'ai' }]);
     } catch {
       setMessages(m => [...m, { text: "Sorry, I'm having trouble connecting.", sender: 'ai' }]);

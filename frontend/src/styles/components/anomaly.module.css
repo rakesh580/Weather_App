@@ -1,0 +1,194 @@
+/* Anomaly Badge — compact chip on WeatherHero */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+.badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+.badgeWarm {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.badgeCool {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  border-color: rgba(59, 130, 246, 0.2);
+}
+.badgeNormal {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  border-color: rgba(34, 197, 94, 0.2);
+}
+.badgeIcon {
+  font-size: 0.7rem;
+}
+
+/* Anomaly Card — expanded detail view */
+.card {
+  margin-top: 16px;
+  padding: 20px;
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--card-shadow);
+}
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.cardTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.cardSubtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.classificationBadge {
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Range bar */
+.rangeBar {
+  margin: 16px 0;
+}
+.rangeBarLabel {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+.rangeTrack {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #3b82f6, #22c55e, #22c55e, #ef4444);
+  overflow: visible;
+}
+.rangeMarker {
+  position: absolute;
+  top: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transform: translateX(-50%);
+  z-index: 2;
+}
+.rangeAvgLine {
+  position: absolute;
+  top: -6px;
+  width: 2px;
+  height: 22px;
+  background: var(--text-primary);
+  transform: translateX(-50%);
+  opacity: 0.4;
+  z-index: 1;
+}
+.rangeAvgLabel {
+  position: absolute;
+  top: 18px;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* Stats row */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 16px 0;
+}
+.stat {
+  text-align: center;
+  padding: 10px 8px;
+  background: rgba(128, 128, 128, 0.06);
+  border-radius: var(--radius-sm);
+}
+.statValue {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.statLabel {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Decade trend */
+.trendSection {
+  margin-top: 16px;
+}
+.trendTitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+.trendBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 60px;
+}
+.trendBar {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  background: var(--accent);
+  opacity: 0.7;
+  position: relative;
+  min-height: 8px;
+  transition: opacity 0.2s;
+}
+.trendBar:hover {
+  opacity: 1;
+}
+.trendBarLabel {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.trendBarValue {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .statsRow { grid-template-columns: repeat(2, 1fr); }
+  .trendBars { height: 48px; }
+}

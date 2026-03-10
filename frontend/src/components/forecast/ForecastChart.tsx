@@ -6,6 +6,8 @@ import {
   Title, Tooltip, Legend, Filler,
 } from 'chart.js';
 import { useTheme } from '../../context/ThemeContext';
+import { useWeather } from '../../context/WeatherContext';
+import { convertTemp } from '../../utils/tempUtils';
 import type { ForecastEntry } from '../../types/weather';
 import s from '../../styles/components/forecast.module.css';
 
@@ -24,6 +26,7 @@ interface Props { entries: ForecastEntry[]; }
 export default function ForecastChart({ entries }: Props) {
   const [chartType, setChartType] = useState<ChartType>('temperature');
   const { theme } = useTheme();
+  const { unit } = useWeather();
   const isDark = theme === 'dark';
 
   const cfg = configs[chartType];
@@ -37,10 +40,10 @@ export default function ForecastChart({ entries }: Props) {
       return d.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', hour12: true });
     }),
     datasets: [{
-      label: cfg.label,
+      label: chartType === 'temperature' ? `Temperature (°${unit})` : cfg.label,
       data: entries.map(e => {
         const v = e[cfg.key] as number;
-        return cfg.key === 'temperature' ? Math.round(v) : v;
+        return cfg.key === 'temperature' ? convertTemp(v, unit) : v;
       }),
       borderColor: themeColors.color,
       backgroundColor: themeColors.fill,
@@ -52,7 +55,7 @@ export default function ForecastChart({ entries }: Props) {
       tension: 0.4,
       fill: true,
     }],
-  }), [entries, cfg, themeColors, isDark]);
+  }), [entries, cfg, themeColors, isDark, chartType, unit]);
 
   const options = useMemo(() => ({
     responsive: true,
@@ -72,9 +75,9 @@ export default function ForecastChart({ entries }: Props) {
     },
     scales: {
       x: { ticks: { color: textColor, font: { size: 10 }, maxRotation: 45 }, grid: { color: gridColor } },
-      y: { title: { display: true, text: cfg.label, color: textColor }, ticks: { color: textColor }, grid: { color: gridColor } },
+      y: { title: { display: true, text: chartType === 'temperature' ? `Temperature (°${unit})` : cfg.label, color: textColor }, ticks: { color: textColor }, grid: { color: gridColor } },
     },
-  }), [cfg.label, textColor, gridColor, isDark]);
+  }), [cfg.label, textColor, gridColor, isDark, chartType, unit]);
 
   return (
     <div>

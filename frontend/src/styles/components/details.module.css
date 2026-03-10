@@ -1,6 +1,6 @@
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -11,52 +11,64 @@
   border-radius: var(--radius-md);
   padding: 16px;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: all 0.3s ease, border-color 0.2s;
   position: relative;
+  overflow: hidden;
 }
-/* HUD corner brackets */
-.card::before,
+.card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: var(--card-hover-shadow);
+}
+/* Accent bottom highlight on hover */
 .card::after {
   content: '';
   position: absolute;
-  width: 10px;
-  height: 10px;
-  pointer-events: none;
+  bottom: 0; left: 10%; right: 10%;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity 0.3s;
 }
-.card::before {
-  top: -1px;
-  left: -1px;
-  border-top: 2px solid var(--hud-bracket-color);
-  border-left: 2px solid var(--hud-bracket-color);
-}
-.card::after {
-  bottom: -1px;
-  right: -1px;
-  border-bottom: 2px solid var(--hud-bracket-color);
-  border-right: 2px solid var(--hud-bracket-color);
-}
-.card:hover {
-  transform: translateY(-4px);
-  border-color: var(--neon-border);
-  box-shadow: var(--neon-glow);
-}
+.card:hover::after { opacity: 0.5; }
 [data-theme="dark"] .card:hover {
-  background: rgba(10, 10, 30, 0.9);
-  border-color: rgba(0, 245, 255, 0.25);
+  background: rgba(35, 40, 30, 0.95);
 }
 .icon {
   font-size: 1.5rem; margin-bottom: 6px;
   color: var(--accent);
-  text-shadow: 0 0 8px var(--accent);
 }
 .value {
   font-size: 1.3rem; font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 1px;
-  animation: neonTextPulse 3s ease-in-out infinite;
 }
 .label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
 .trend { font-size: 0.7rem; font-weight: 600; margin-top: 2px; }
+
+/* Wind direction arrow */
+.windArrow {
+  display: inline-block;
+  font-size: 0.85rem;
+  margin-left: 4px;
+  color: var(--accent);
+  transition: transform 0.3s;
+}
+
+/* Mini progress meter at bottom of card */
+.meter {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: rgba(180, 160, 130, 0.1);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  overflow: hidden;
+}
+.meterFill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.8s ease;
+}
 
 @media (max-width: 600px) {
   .grid { grid-template-columns: repeat(2, 1fr); }

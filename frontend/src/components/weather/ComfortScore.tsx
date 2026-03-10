@@ -1,6 +1,8 @@
 import { useMemo, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { useWeather } from '../../context/WeatherContext';
 import { calculateComfort, getClothingChips } from '../../utils/comfortScore';
+import InfoTooltip from '../ui/InfoTooltip';
 import s from '../../styles/components/comfort.module.css';
 
 export default function ComfortScore() {
@@ -34,7 +36,15 @@ export default function ComfortScore() {
 
   return (
     <div className={s.section}>
-      <svg className={s.svg} width="110" height="110" viewBox="0 0 110 110">
+      <motion.svg
+        className={s.svg}
+        width="110"
+        height="110"
+        viewBox="0 0 110 110"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.2 }}
+      >
         <circle cx="55" cy="55" r="48" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="6" />
         <circle
           ref={arcRef}
@@ -49,10 +59,11 @@ export default function ComfortScore() {
         <text x="55" y="55" textAnchor="middle" dy="6" fill="var(--text-primary)" fontSize="26" fontWeight="800">
           {comfort.score}
         </text>
-      </svg>
+      </motion.svg>
       <div className={s.right}>
         <div className={s.status} style={{ color: comfort.color }}>
           {comfort.status}
+          <InfoTooltip text="Combines temperature, humidity, wind, and visibility into a 0-100 rating" />
         </div>
         <div className={s.chips}>
           {chips.map((c, i) => (

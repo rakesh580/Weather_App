@@ -1,11 +1,52 @@
 .section { margin-bottom: 24px; }
+.mapWrapper { position: relative; }
 .map {
   height: 300px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--neon-border);
-  box-shadow: var(--neon-glow);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
   z-index: 1;
+}
+.layerControls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  gap: 4px;
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  border: var(--glass-border);
+  box-shadow: var(--card-shadow);
+}
+.layerBtn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.layerBtn:hover {
+  background: rgba(194, 112, 62, 0.1);
+}
+[data-theme="dark"] .layerBtn:hover { background: rgba(212, 160, 90, 0.1); }
+.layerBtnActive {
+  background: var(--accent);
+  color: #fff;
+}
+.layerBtnActive:hover {
+  background: var(--accent);
 }
 @media (max-width: 600px) {
   .map { height: 220px; }
+  .layerBtn { width: 30px; height: 30px; font-size: 0.75rem; }
 }

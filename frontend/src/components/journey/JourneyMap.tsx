@@ -38,7 +38,12 @@ export default function JourneyMap({ data }: Props) {
   return (
     <div className={s.mapContainer}>
       <MapContainer center={[39.8, -98.5]} zoom={4} className={s.journeyMap} zoomControl={false}>
-        <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer
+          attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          subdomains="abcd"
+          maxZoom={20}
+        />
         <FitBounds waypoints={data.waypoints} />
 
         {data.route_coords.length > 1 && (

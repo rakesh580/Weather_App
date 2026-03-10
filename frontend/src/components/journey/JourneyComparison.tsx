@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { planJourney } from '../../api/journey';
+import { useToast } from '../ui/Toast';
 import type { CityData, JourneyRequest, JourneyResponse } from '../../types/journey';
 import s from '../../styles/components/journey.module.css';
 
@@ -15,6 +16,7 @@ interface CompareResult {
 }
 
 export default function JourneyComparison({ origin, dest }: Props) {
+  const { showToast } = useToast();
   const [departures, setDepartures] = useState<string[]>(() => {
     const base = new Date();
     return [1, 3, 5].map(h => {
@@ -27,7 +29,10 @@ export default function JourneyComparison({ origin, dest }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleCompare = async () => {
-    if (!origin || !dest) { alert('Select origin and destination first.'); return; }
+    if (!origin || !dest) {
+      showToast('Select origin and destination first, then plan a route.', 'info');
+      return;
+    }
     setLoading(true);
     setResults([]);
 
@@ -70,7 +75,6 @@ export default function JourneyComparison({ origin, dest }: Props) {
     return Math.round(Math.max(...pops) * 100);
   };
 
-  // Find best departure (lowest severity rank)
   const bestIdx = results.length > 0
     ? results.reduce((best, r, i) => {
         if (!r.data) return best;
@@ -105,35 +109,67 @@ export default function JourneyComparison({ origin, dest }: Props) {
       </div>
 
       {results.length > 0 && (
-        <div className={s.compareTable}>
-          <div className={s.compareRow} style={{ fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase' }}>
-            <span>Departure</span>
-            <span>Weather</span>
-            <span>Temp Range</span>
-            <span>Max Precip</span>
-            <span>Duration</span>
+        <>
+          {/* Desktop table */}
+          <div className={s.compareTable}>
+            <div className={s.compareRow} style={{ fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase' }}>
+              <span>Departure</span>
+              <span>Weather</span>
+              <span>Temp Range</span>
+              <span>Max Precip</span>
+              <span>Duration</span>
+            </div>
+            {results.map((r, i) => {
+              const isBest = i === bestIdx;
+              if (!r.data) return (
+                <div key={i} className={s.compareRow}>
+                  <span>{new Date(r.departure).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+                  <span style={{ color: '#ef4444' }}>Error</span>
+                  <span>—</span><span>—</span><span>—</span>
+                </div>
+              );
+              const worst = getWorstSeverity(r.data);
+              return (
+                <div key={i} className={`${s.compareRow} ${isBest ? s.compareBest : ''}`}>
+                  <span>{new Date(r.departure).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+                  <span style={{ textTransform: 'capitalize' }}>{worst}</span>
+                  <span>{getTempRange(r.data)}</span>
+                  <span>{getMaxPrecip(r.data)}%</span>
+                  <span>{r.data.total_duration_hours} hrs</span>
+                </div>
+              );
+            })}
           </div>
-          {results.map((r, i) => {
-            const isBest = i === bestIdx;
-            if (!r.data) return (
-              <div key={i} className={s.compareRow}>
-                <span>{new Date(r.departure).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
-                <span style={{ color: '#ef4444' }}>Error</span>
-                <span>—</span><span>—</span><span>—</span>
-              </div>
-            );
-            const worst = getWorstSeverity(r.data);
-            return (
-              <div key={i} className={`${s.compareRow} ${isBest ? s.compareBest : ''}`}>
-                <span>{new Date(r.departure).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
-                <span style={{ textTransform: 'capitalize' }}>{worst}</span>
-                <span>{getTempRange(r.data)}</span>
-                <span>{getMaxPrecip(r.data)}%</span>
-                <span>{r.data.total_duration_hours} hrs</span>
-              </div>
-            );
-          })}
-        </div>
+
+          {/* Mobile cards */}
+          <div className={s.compareMobileCards}>
+            {results.map((r, i) => {
+              const isBest = i === bestIdx;
+              if (!r.data) return (
+                <div key={i} className={s.compareCard}>
+                  <div className={s.compareCardTime}>
+                    {new Date(r.departure).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </div>
+                  <div style={{ color: '#ef4444', fontSize: '0.8rem' }}>Failed to load</div>
+                </div>
+              );
+              return (
+                <div key={i} className={`${s.compareCard} ${isBest ? s.compareCardBest : ''}`}>
+                  <div className={s.compareCardTime}>
+                    {isBest && <i className="fa-solid fa-star" style={{ color: '#22c55e', marginRight: 6 }} />}
+                    {new Date(r.departure).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </div>
+                  <div className={s.compareCardGrid}>
+                    <div><div className={s.compareCardLabel}>Weather</div><span style={{ textTransform: 'capitalize' }}>{getWorstSeverity(r.data)}</span></div>
+                    <div><div className={s.compareCardLabel}>Temp</div>{getTempRange(r.data)}</div>
+                    <div><div className={s.compareCardLabel}>Precip</div>{getMaxPrecip(r.data)}%</div>
+                    <div><div className={s.compareCardLabel}>Duration</div>{r.data.total_duration_hours} hrs</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

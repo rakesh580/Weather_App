@@ -6,7 +6,15 @@ export default function FavoritesBar() {
   const { favorites, removeFavorite } = useFavorites();
   const { loadWeather } = useWeather();
 
-  if (favorites.length === 0) return null;
+  if (favorites.length === 0) {
+    return (
+      <div className={s.bar}>
+        <span className={s.emptyHint}>
+          <i className="fa-regular fa-star" /> Star cities for quick access
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className={s.bar}>

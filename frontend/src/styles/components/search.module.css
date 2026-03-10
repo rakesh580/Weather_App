@@ -15,7 +15,7 @@
 .input::placeholder { color: var(--text-muted); }
 .input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow), var(--neon-glow);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .icon {
   position: absolute; left: 16px; top: 50%;
@@ -25,7 +25,7 @@
 .locationBtn {
   width: 48px; height: 48px;
   border-radius: 50%;
-  border: 1px solid var(--neon-border);
+  border: 1px solid var(--card-border);
   background: var(--card-bg);
   backdrop-filter: blur(10px);
   color: var(--text-primary);
@@ -37,7 +37,8 @@
 }
 .locationBtn:hover {
   background: var(--accent);
-  box-shadow: var(--neon-glow);
+  color: white;
+  box-shadow: var(--card-hover-shadow);
 }
 .dropdown {
   position: absolute;
@@ -47,7 +48,7 @@
   backdrop-filter: var(--glass-blur);
   border-radius: var(--radius-md);
   border: var(--glass-border);
-  box-shadow: var(--card-shadow), var(--neon-glow);
+  box-shadow: var(--card-shadow);
   z-index: 100;
   overflow: hidden;
 }
@@ -59,7 +60,34 @@
   border-bottom: 1px solid var(--card-border);
 }
 .result:last-child { border-bottom: none; }
-.result:hover { background: rgba(255, 107, 53, 0.15); }
-[data-theme="dark"] .result:hover { background: rgba(0, 245, 255, 0.1); }
+.result:hover { background: rgba(194, 112, 62, 0.08); }
+[data-theme="dark"] .result:hover { background: rgba(212, 160, 90, 0.08); }
 .resultName { font-weight: 600; }
-.resultDetail { font-size: 0.8rem; color: var(--text-muted); }
+.resultDetail {
+  font-size: 0.8rem; color: var(--text-muted);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.resultActive {
+  background: rgba(194, 112, 62, 0.12);
+}
+[data-theme="dark"] .resultActive { background: rgba(212, 160, 90, 0.12); }
+.recentIcon {
+  color: var(--text-muted); margin-right: 8px; font-size: 0.75rem;
+}
+.resultDelete {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 0.7rem;
+  opacity: 0; padding: 2px 4px; border-radius: 4px;
+  transition: opacity 0.2s, color 0.2s;
+}
+.result:hover .resultDelete { opacity: 1; }
+.resultDelete:hover { color: var(--danger); }
+.dropdownLabel {
+  padding: 8px 20px 4px; font-size: 0.7rem; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;
+}
+.emptyState {
+  padding: 16px 20px; text-align: center;
+  color: var(--text-muted); font-size: 0.85rem;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}

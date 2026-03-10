@@ -1,0 +1,205 @@
+.welcome {
+  margin: 20px 0;
+}
+
+/* Hero */
+.hero {
+  text-align: center;
+  padding: 48px 28px 32px;
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -60px; left: -60px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  opacity: 0.05;
+  pointer-events: none;
+}
+.logoWrap {
+  margin-bottom: 16px;
+}
+.heading {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+.greetingIcon {
+  color: var(--accent);
+  font-size: 1.5rem;
+  margin-right: 4px;
+}
+.tagline {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  max-width: 440px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* Location CTA */
+.ctaSection {
+  text-align: center;
+  margin: 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.locationCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px var(--accent-glow);
+}
+.locationCta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px var(--accent-glow);
+}
+.locationCta:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+.ctaDivider {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 300px;
+}
+.ctaDivider::before,
+.ctaDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--section-line-color), transparent);
+}
+
+/* Popular Cities */
+.citiesGrid {
+  margin-bottom: 24px;
+}
+.sectionLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sectionLabel i {
+  color: var(--accent);
+  font-size: 0.75rem;
+}
+.cities {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.cityCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 12px;
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+.cityCard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-hover-shadow);
+  border-color: var(--accent);
+}
+.cityIcon {
+  font-size: 1.4rem;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+.cityName {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.cityCountry {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+/* Feature cards */
+.featuresSection {
+  margin-bottom: 8px;
+}
+.features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.featureCard {
+  padding: 18px 16px;
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  transition: all 0.3s ease;
+}
+.featureCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-hover-shadow);
+}
+.featureIcon {
+  font-size: 1.5rem;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.featureTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.featureDesc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .heading { font-size: 1.4rem; }
+  .tagline { font-size: 0.88rem; }
+  .cities { grid-template-columns: repeat(2, 1fr); }
+  .features { grid-template-columns: 1fr; }
+  .locationCta { padding: 12px 24px; font-size: 0.9rem; }
+}

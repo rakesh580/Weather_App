@@ -12,6 +12,11 @@ export interface WeatherData {
   weather_id: number;
   weather_icon: string;
   wind_speed: number;
+  wind_deg?: number;
+  clouds?: number;
+  uvi?: number;
+  aqi?: number;
+  aqi_label?: string;
   dt: number;
   timezone_offset: number;
   sunrise: number;
@@ -29,6 +34,7 @@ export interface ForecastEntry {
   weather_id: number;
   weather_icon: string;
   wind_speed: number;
+  pop?: number;
 }
 
 export interface ForecastResponse {
@@ -53,6 +59,7 @@ export interface DailyForecast {
   weather_id: number;
   weather_icon: string;
   weather: string;
+  pop: number;
 }
 
 export interface ComfortResult {
