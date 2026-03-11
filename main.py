@@ -139,7 +139,7 @@ class JourneyRequest(BaseModel):
     @classmethod
     def validate_departure_time(cls, v):
         try:
-            datetime.fromisoformat(v)
+            datetime.fromisoformat(v.replace("Z", "+00:00"))
         except (ValueError, TypeError):
             raise ValueError("departure_time must be a valid ISO 8601 datetime")
         return v
@@ -946,7 +946,7 @@ class LogisticsRequest(BaseModel):
     @classmethod
     def validate_start_time(cls, v):
         try:
-            datetime.fromisoformat(v)
+            datetime.fromisoformat(v.replace("Z", "+00:00"))
         except (ValueError, TypeError):
             raise ValueError("start_time must be valid ISO 8601")
         return v
@@ -982,7 +982,7 @@ def optimize_logistics(request: Request, req: LogisticsRequest):
     import itertools
 
     try:
-        departure_dt = datetime.fromisoformat(req.start_time)
+        departure_dt = datetime.fromisoformat(req.start_time.replace("Z", "+00:00"))
     except (ValueError, TypeError):
         raise HTTPException(status_code=400, detail="Invalid start_time")
     departure_ts = departure_dt.timestamp()
@@ -1461,7 +1461,7 @@ def plan_journey(request: Request, req: JourneyRequest):
         return {"error": "OpenWeatherMap API key not configured"}
 
     try:
-        departure_dt = datetime.fromisoformat(req.departure_time)
+        departure_dt = datetime.fromisoformat(req.departure_time.replace("Z", "+00:00"))
     except (ValueError, TypeError):
         raise HTTPException(status_code=400, detail="Invalid departure_time format")
     departure_ts = departure_dt.timestamp()
