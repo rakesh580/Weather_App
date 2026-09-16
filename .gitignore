@@ -3,11 +3,16 @@
 __pycache__/
 *.pyc
 .cache/
+.cache.sqlite
+.pytest_cache/
+.ruff_cache/
+coverage/
+.coverage
 .netlify/
 node_modules/
 *.pem
 *.sqlite
-public/
+/public/
 netlify/
 netlify.toml
 /package.json

@@ -30,7 +30,7 @@ PINECONE_ENVIRONMENT   # From Pinecone dashboard (e.g., "us-east-1-aws")
 
 #### Application Secrets
 ```
-OPENWEATHER_API_KEY    # Already included: f2b2aea1751f9100a4550af87233e111
+OPENWEATHER_API_KEY    # Get one at https://openweathermap.org/api (never commit real keys)
 ```
 
 ## Deployment Architecture
@@ -147,7 +147,7 @@ nano .env
 ANTHROPIC_API_KEY=your_anthropic_key_here
 PINECONE_API_KEY=your_pinecone_key_here
 PINECONE_ENVIRONMENT=your_pinecone_environment
-OPENWEATHER_API_KEY=f2b2aea1751f9100a4550af87233e111
+OPENWEATHER_API_KEY=<your-openweathermap-key>
 ```
 
 ### 3. Build and Deploy
