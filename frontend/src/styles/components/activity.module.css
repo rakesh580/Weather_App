@@ -31,6 +31,7 @@
 }
 
 .activityCard {
+  font: inherit; color: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -296,3 +297,6 @@
   pointer-events: none;
   z-index: 10;
 }
+
+.activityCard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.title { font-size: 1.3rem; }

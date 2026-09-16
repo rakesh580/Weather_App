@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { planJourney } from '../../api/journey';
-import { useToast } from '../ui/Toast';
+import { useToast } from '../../hooks/useToast';
+import { useWeather } from '../../hooks/useWeather';
+import { convertTemp } from '../../utils/tempUtils';
+import { datetimeLocalToISO, toDatetimeLocal } from '../../utils/time';
 import type { CityData, JourneyRequest, JourneyResponse } from '../../types/journey';
 import s from '../../styles/components/journey.module.css';
 
 interface Props {
   origin: CityData | null;
   dest: CityData | null;
+  /** datetime-local string of the planned departure; alternatives are offset from it */
+  baseDeparture?: string;
 }
 
 interface CompareResult {
@@ -15,14 +20,16 @@ interface CompareResult {
   error?: boolean;
 }
 
-export default function JourneyComparison({ origin, dest }: Props) {
+export default function JourneyComparison({ origin, dest, baseDeparture }: Props) {
   const { showToast } = useToast();
+  const { unit } = useWeather();
   const [departures, setDepartures] = useState<string[]>(() => {
-    const base = new Date();
-    return [1, 3, 5].map(h => {
+    const base = baseDeparture ? new Date(baseDeparture) : new Date();
+    if (Number.isNaN(base.getTime())) base.setTime(Date.now());
+    return [0, 2, 4].map(h => {
       const d = new Date(base);
       d.setHours(d.getHours() + h, 0, 0, 0);
-      return d.toISOString().slice(0, 16);
+      return toDatetimeLocal(d);
     });
   });
   const [results, setResults] = useState<CompareResult[]>([]);
@@ -41,7 +48,7 @@ export default function JourneyComparison({ origin, dest }: Props) {
         const req: JourneyRequest = {
           origin_lat: origin.lat, origin_lon: origin.lon, origin_name: origin.name,
           dest_lat: dest.lat, dest_lon: dest.lon, dest_name: dest.name,
-          departure_time: dep,
+          departure_time: datetimeLocalToISO(dep),
         };
         const data = await planJourney(req);
         return { departure: dep, data };
@@ -67,7 +74,8 @@ export default function JourneyComparison({ origin, dest }: Props) {
 
   const getTempRange = (data: JourneyResponse) => {
     const temps = data.waypoints.map(w => w.weather.temperature);
-    return `${Math.round(Math.min(...temps))}–${Math.round(Math.max(...temps))}°F`;
+    if (temps.length === 0) return '—';
+    return `${convertTemp(Math.min(...temps), unit)}–${convertTemp(Math.max(...temps), unit)}°${unit}`;
   };
 
   const getMaxPrecip = (data: JourneyResponse) => {

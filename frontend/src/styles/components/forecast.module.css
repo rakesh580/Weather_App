@@ -30,7 +30,7 @@
 
 /* Forecast cards scroll */
 .scroll {
-  display: flex; gap: 12px; overflow-x: auto; padding: 4px 0 16px;
+  display: flex; gap: 12px; overflow-x: auto; padding: 4px 0 16px; margin: 0; list-style: none;
   scrollbar-width: thin;
 }
 .item {
@@ -41,12 +41,9 @@
   border-radius: var(--radius-md);
   padding: 14px 10px;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: box-shadow 0.3s ease;
 }
-.item:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--card-hover-shadow);
-}
+.item:hover { box-shadow: var(--card-hover-shadow); }
 [data-theme="dark"] .item:hover {
   background: rgba(35, 40, 30, 0.95);
 }
@@ -54,7 +51,7 @@
 .fcIcon { font-size: 1.8rem; margin-bottom: 6px; }
 .fcTemp { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
 .fcPop {
-  font-size: 0.7rem; color: #60a5fa; margin-top: 3px;
+  font-size: 0.72rem; color: #2563eb; font-weight: 600; margin-top: 3px;
   display: flex; align-items: center; justify-content: center; gap: 3px;
 }
 .fcPop i { font-size: 0.6rem; }
@@ -74,7 +71,7 @@
 }
 
 /* Daily forecast */
-.dailyList { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.dailyList { display: flex; flex-direction: column; gap: 10px; margin: 0 0 24px; padding: 0; list-style: none; }
 .dailyCard {
   display: flex; align-items: center; gap: 16px;
   padding: 14px 18px;
@@ -89,10 +86,11 @@
   box-shadow: var(--card-hover-shadow);
 }
 [data-theme="dark"] .dailyCard:hover { background: rgba(35, 40, 30, 0.95); }
-.dailyDay { width: 70px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary); }
+.dailyDay { width: 70px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary); display: flex; flex-direction: column; }
+.dailyDate { font-size: 0.68rem; font-weight: 500; color: var(--text-muted); }
 .dailyIcon { font-size: 1.5rem; width: 40px; text-align: center; }
 .dailyPop {
-  width: 45px; font-size: 0.75rem; color: #60a5fa; text-align: center;
+  width: 45px; font-size: 0.75rem; color: #2563eb; font-weight: 600; text-align: center;
   display: flex; align-items: center; justify-content: center; gap: 3px;
 }
 .dailyPop i { font-size: 0.6rem; }
@@ -105,7 +103,6 @@
 }
 .dailyTempFill {
   height: 100%; border-radius: 2px;
-  background: linear-gradient(90deg, var(--accent), #d94040);
 }
 .dailyDesc {
   font-size: 0.75rem; color: var(--text-muted); text-transform: capitalize;
@@ -118,3 +115,6 @@
   .dailyPop { display: none; }
   .dailyDay { width: 55px; font-size: 0.8rem; }
 }
+
+[data-theme="dark"] .fcPop, [data-theme="dark"] .dailyPop { color: #93c5fd; }
+.viewBtn:focus-visible, .chartTab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

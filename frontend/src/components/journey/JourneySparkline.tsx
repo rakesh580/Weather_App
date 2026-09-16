@@ -1,16 +1,19 @@
 import { Line } from 'react-chartjs-2';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../../hooks/useTheme';
 import type { JourneyResponse } from '../../types/journey';
+import { useWeather } from '../../hooks/useWeather';
+import { convertTemp } from '../../utils/tempUtils';
 import s from '../../styles/components/journey.module.css';
 
 interface Props { data: JourneyResponse; }
 
 export default function JourneySparkline({ data }: Props) {
+  const { unit } = useWeather();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
   const labels = data.waypoints.map(wp => wp.name.split(',')[0].slice(0, 10));
-  const temps = data.waypoints.map(wp => Math.round(wp.weather.temperature));
+  const temps = data.waypoints.map(wp => convertTemp(wp.weather.temperature, unit));
   const colors = data.waypoints.map(wp => wp.color);
 
   const chartData = {
@@ -38,7 +41,7 @@ export default function JourneySparkline({ data }: Props) {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (ctx: { raw: unknown }) => `${ctx.raw}°F`,
+          label: (ctx: { raw: unknown }) => `${ctx.raw}°${unit}`,
         },
       },
     },

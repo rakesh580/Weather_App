@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../../hooks/useTheme';
 import s from '../../styles/components/header.module.css';
 
 export default function ThemeToggle() {

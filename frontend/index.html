@@ -2,10 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SkyPulse — Aurora</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="SkyPulse — weather intelligence: live conditions, hourly and 5-day forecasts, severe weather alerts, route weather, activity planning and an AI assistant." />
+    <meta name="theme-color" content="#f5f0e8" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="SkyPulse" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <title>SkyPulse — Weather Intelligence</title>
+    <script>
+      // Apply the saved theme before first paint to avoid a light→dark flash.
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) { /* storage unavailable */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,42 +1,21 @@
-.wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  cursor: help;
-  margin-left: 6px;
+.wrapper { position: relative; display: inline-flex; align-items: center; margin-left: 6px; }
+.trigger {
+  background: none; border: none; padding: 2px; cursor: help; color: var(--text-muted); border-radius: 50%;
+  display: inline-flex; align-items: center; line-height: 1;
 }
-.icon {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-.wrapper:hover .icon { opacity: 1; color: var(--accent); }
+.trigger:hover, .trigger:focus-visible { color: var(--accent); }
+.trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.icon { font-size: 0.7rem; }
 .bubble {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--card-bg);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 0.72rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  box-shadow: var(--card-shadow);
-  z-index: 100;
-  pointer-events: none;
-  animation: tooltipIn 0.15s ease;
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px;
+  padding: 8px 12px; font-size: 0.72rem; line-height: 1.4; color: var(--text-secondary);
+  width: max-content; max-width: 220px; white-space: normal; text-align: left;
+  box-shadow: var(--card-shadow); z-index: 200; pointer-events: none; animation: tooltipIn 0.15s ease;
 }
 .arrow {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: var(--card-border);
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: var(--card-border);
 }
 @keyframes tooltipIn {
   from { opacity: 0; transform: translateX(-50%) translateY(4px); }

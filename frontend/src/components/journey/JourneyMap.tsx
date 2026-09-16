@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup, useMap } from 'react-leaflet';
 import type { JourneyResponse } from '../../types/journey';
+import { useWeather } from '../../hooks/useWeather';
+import { convertTemp } from '../../utils/tempUtils';
 import s from '../../styles/components/journey.module.css';
 
 function FitBounds({ waypoints }: { waypoints: JourneyResponse['waypoints'] }) {
@@ -25,6 +27,7 @@ function isDark(wp: JourneyResponse['waypoints'][0]): boolean {
 interface Props { data: JourneyResponse; }
 
 export default function JourneyMap({ data }: Props) {
+  const { unit } = useWeather();
   // Build darkness segments between consecutive dark waypoints
   const darkSegments: [number, number][][] = [];
   for (let i = 0; i < data.waypoints.length - 1; i++) {
@@ -73,7 +76,7 @@ export default function JourneyMap({ data }: Props) {
               <Popup>
                 <strong>{wp.name}</strong><br />
                 <em>{time}</em>{nightDriving && ' 🌙'}<br />
-                {Math.round(wp.weather.temperature)}&deg;F — {wp.weather.description}<br />
+                {convertTemp(wp.weather.temperature, unit)}&deg;{unit} — {wp.weather.description}<br />
                 <small>{Math.round(wp.distance_from_origin_miles)} mi from start</small>
                 {wp.elevation_ft != null && <><br /><small>Elevation: {wp.elevation_ft.toLocaleString()} ft</small></>}
               </Popup>

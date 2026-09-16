@@ -4,13 +4,13 @@ import L from 'leaflet';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import { useWeather } from '../../context/WeatherContext';
+import { useWeather } from '../../hooks/useWeather';
 import { convertTemp } from '../../utils/tempUtils';
 import { getWeatherIcon } from '../../utils/weatherIcons';
 import s from '../../styles/components/map.module.css';
 
 // Fix Leaflet default marker icon paths broken by bundler
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
   iconUrl: markerIcon,
@@ -29,7 +29,8 @@ function MapUpdater({ lat, lon }: { lat: number; lon: number }) {
   const map = useMap();
   useEffect(() => {
     map.setView([lat, lon], 10, { animate: true });
-    setTimeout(() => map.invalidateSize(), 300);
+    const t = setTimeout(() => map.invalidateSize(), 300);
+    return () => clearTimeout(t);
   }, [map, lat, lon]);
   return null;
 }
@@ -54,6 +55,7 @@ export default function WeatherMap() {
               onClick={() => setActiveLayer(prev => prev === l.key ? null : l.key)}
               title={l.label}
               aria-label={`Toggle ${l.label} layer`}
+              aria-pressed={activeLayer === l.key}
             >
               <i className={`fa-solid ${l.icon}`} />
             </button>

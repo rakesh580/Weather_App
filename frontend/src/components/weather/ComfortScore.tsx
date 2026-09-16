@@ -1,13 +1,14 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useWeather } from '../../context/WeatherContext';
+import { useWeather } from '../../hooks/useWeather';
 import { calculateComfort, getClothingChips } from '../../utils/comfortScore';
 import InfoTooltip from '../ui/InfoTooltip';
 import s from '../../styles/components/comfort.module.css';
 
+const CIRCUMFERENCE = 2 * Math.PI * 48;
+
 export default function ComfortScore() {
   const { weather } = useWeather();
-  const arcRef = useRef<SVGCircleElement>(null);
 
   const comfort = useMemo(() => {
     if (!weather) return null;
@@ -21,58 +22,36 @@ export default function ComfortScore() {
     return getClothingChips(weather.temperature, weather.humidity, weather.wind_speed, visKm, weather.weather_id);
   }, [weather]);
 
-  const circumference = 301.6;
-  const offset = comfort ? circumference - (comfort.score / 100) * circumference : circumference;
-
-  useEffect(() => {
-    if (arcRef.current) {
-      setTimeout(() => {
-        arcRef.current?.setAttribute('stroke-dashoffset', String(offset));
-      }, 100);
-    }
-  }, [offset]);
-
   if (!weather || !comfort) return null;
+  const offset = CIRCUMFERENCE - (comfort.score / 100) * CIRCUMFERENCE;
 
   return (
-    <div className={s.section}>
+    <section className={s.section} aria-label={`Comfort score ${comfort.score} out of 100, ${comfort.status}`}>
       <motion.svg
-        className={s.svg}
-        width="110"
-        height="110"
-        viewBox="0 0 110 110"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.2 }}
+        className={s.svg} width="110" height="110" viewBox="0 0 110 110" aria-hidden="true"
+        initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.1 }}
       >
-        <circle cx="55" cy="55" r="48" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="6" />
-        <circle
-          ref={arcRef}
-          cx="55" cy="55" r="48"
-          fill="none" stroke={comfort.color} strokeWidth="6"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference}
-          strokeLinecap="round"
-          transform="rotate(-90 55 55)"
-          style={{ transition: 'stroke-dashoffset 0.8s ease, stroke 0.3s' }}
+        <circle cx="55" cy="55" r="48" fill="none" stroke="var(--card-border)" strokeWidth="6" />
+        <motion.circle
+          cx="55" cy="55" r="48" fill="none" stroke={comfort.color} strokeWidth="6"
+          strokeDasharray={CIRCUMFERENCE} strokeLinecap="round" transform="rotate(-90 55 55)"
+          initial={{ strokeDashoffset: CIRCUMFERENCE }} animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 0.9, ease: 'easeOut', delay: 0.2 }}
         />
-        <text x="55" y="55" textAnchor="middle" dy="6" fill="var(--text-primary)" fontSize="26" fontWeight="800">
-          {comfort.score}
-        </text>
+        <text x="55" y="55" textAnchor="middle" dy="6" fill="var(--text-primary)" fontSize="26" fontWeight="800">{comfort.score}</text>
       </motion.svg>
       <div className={s.right}>
         <div className={s.status} style={{ color: comfort.color }}>
           {comfort.status}
-          <InfoTooltip text="Combines temperature, humidity, wind, and visibility into a 0-100 rating" />
+          <InfoTooltip text="Outdoor comfort 0–100, weighing temperature (40%), humidity (25%), wind (20%) and visibility (15%)" label="About the comfort score" />
         </div>
-        <div className={s.chips}>
-          {chips.map((c, i) => (
-            <span key={i} className={s.chip}>
-              <i className={`fa-solid ${c.icon}`} /> {c.text}
-            </span>
+        <ul className={s.chips} aria-label="What to bring">
+          {chips.map(c => (
+            <li key={c.text} className={s.chip}><i className={`fa-solid ${c.icon}`} aria-hidden="true" /> {c.text}</li>
           ))}
-        </div>
+        </ul>
       </div>
-    </div>
+    </section>
   );
 }

@@ -1,0 +1,25 @@
+.card {
+  position: relative; margin-bottom: 24px; padding: 16px 18px; border-radius: var(--radius-lg);
+  background: var(--card-bg); border: var(--glass-border); box-shadow: var(--card-shadow);
+}
+.card::before {
+  content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; border-radius: 4px 0 0 4px;
+  background: linear-gradient(180deg, var(--accent), transparent);
+}
+.head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.6px;
+  text-transform: uppercase; color: var(--accent); background: var(--accent-glow); padding: 4px 10px; border-radius: 999px;
+}
+.meta { font-size: 0.72rem; color: var(--text-muted); }
+.refresh { margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; padding: 4px; }
+.refresh:hover { color: var(--accent); }
+.refresh:disabled { opacity: 0.5; cursor: progress; }
+.text { margin: 0; font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); }
+.error { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+.skeleton { display: flex; flex-direction: column; gap: 8px; }
+.skeleton span { display: block; height: 12px; border-radius: 6px;
+  background: linear-gradient(90deg, var(--skeleton-from) 25%, var(--skeleton-to) 50%, var(--skeleton-from) 75%);
+  background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.skeleton span:nth-child(2) { width: 92%; }
+.skeleton span:nth-child(3) { width: 70%; }

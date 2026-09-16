@@ -303,13 +303,14 @@
 }
 .historyToggle:hover { border-color: var(--accent); }
 [data-theme="dark"] .historyToggle { background: rgba(25, 30, 22, 0.8); }
-.historyList { margin-top: 6px; }
+.historyList { margin: 6px 0 0; padding: 0; list-style: none; }
 .historyItem {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 12px; border-bottom: 1px solid var(--card-border);
   font-size: 0.78rem;
 }
-.historyRoute { flex: 1; cursor: pointer; color: var(--text-primary); }
+.historyRoute { flex: 1; cursor: pointer; color: var(--text-primary); background: none; border: none; text-align: left; font: inherit; padding: 4px 0; }
+.historyRoute:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 .historyRoute:hover { color: var(--accent); }
 .historyMeta { display: block; font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
 .historyDelete {
@@ -477,3 +478,5 @@
   /* FAB tooltip */
   .fabTooltip { display: none; }
 }
+
+.summaryNote { font-size: 0.78rem; color: var(--text-muted); margin: 8px 0 0; }
