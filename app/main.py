@@ -131,9 +131,10 @@ def _safe_dist_file(full_path: str) -> str | None:
     segments = full_path.split("/")
     if any(seg in ("", ".", "..") or seg.startswith("~") for seg in segments):
         return None
-    dist = os.path.realpath(str(FRONTEND_DIST))
+    dist = os.path.realpath(str(FRONTEND_DIST)) + os.sep
     target = os.path.normpath(os.path.join(dist, *segments))
-    if not target.startswith(dist + os.sep):
+    # Canonical containment check: the normalised absolute path must stay under dist/.
+    if not target.startswith(dist):
         return None
     if not os.path.isfile(target):
         return None
