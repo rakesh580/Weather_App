@@ -117,11 +117,27 @@ def mount_frontend(app: FastAPI) -> None:
     def spa(full_path: str):
         if full_path.startswith("api/"):
             return JSONResponse(status_code=404, content={"detail": "Not Found"})
-        candidate = (FRONTEND_DIST / full_path).resolve()
-        if full_path and candidate.is_file() and str(candidate).startswith(str(FRONTEND_DIST)):
+        candidate = _safe_dist_file(full_path)
+        if candidate is not None:
             cache = "public, max-age=31536000, immutable" if full_path.startswith("assets/") else "no-cache"
             return FileResponse(candidate, headers={"Cache-Control": cache})
         return FileResponse(index, headers={"Cache-Control": "no-cache"})
+
+
+def _safe_dist_file(full_path: str) -> str | None:
+    """Resolve a URL path to a file inside frontend/dist, rejecting traversal and unsafe segments."""
+    if not full_path or "\\" in full_path or "\0" in full_path:
+        return None
+    segments = full_path.split("/")
+    if any(seg in ("", ".", "..") or seg.startswith("~") for seg in segments):
+        return None
+    dist = os.path.realpath(str(FRONTEND_DIST))
+    target = os.path.normpath(os.path.join(dist, *segments))
+    if not target.startswith(dist + os.sep):
+        return None
+    if not os.path.isfile(target):
+        return None
+    return target
 
 
 app = create_app()

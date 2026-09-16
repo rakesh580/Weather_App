@@ -147,3 +147,18 @@ async def test_security_headers_on_html_not_api(client):
     api = await client.get("/api/health")
     assert api.headers["x-content-type-options"] == "nosniff"
     assert "content-security-policy" not in api.headers
+
+
+def test_safe_dist_file_rejects_traversal(tmp_path, monkeypatch):
+    from app import main as app_main
+
+    dist = tmp_path / "dist"
+    (dist / "assets").mkdir(parents=True)
+    (dist / "assets" / "a.js").write_text("ok")
+    (tmp_path / "secret.txt").write_text("nope")
+    monkeypatch.setattr(app_main, "FRONTEND_DIST", dist)
+
+    assert app_main._safe_dist_file("assets/a.js") == str((dist / "assets" / "a.js").resolve())
+    for bad in ("../secret.txt", "assets/../../secret.txt", "..", "/etc/passwd", "assets//a.js", "~root", "a\\b"):
+        assert app_main._safe_dist_file(bad) is None, bad
+    assert app_main._safe_dist_file("missing.js") is None
