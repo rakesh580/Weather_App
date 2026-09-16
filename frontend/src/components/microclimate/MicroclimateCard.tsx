@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useWeather } from '../../context/WeatherContext';
+import { useWeather } from '../../hooks/useWeather';
+import { locationKey } from '../../utils/location';
 import { getMicroclimate } from '../../api/microclimate';
 import { convertTemp } from '../../utils/tempUtils';
-import type { MicroclimateData } from '../../types/microclimate';
 import s from '../../styles/components/microclimate.module.css';
 
 const CORRECTION_LABELS: Record<string, { label: string; icon: string }> = {
@@ -14,14 +15,16 @@ const CORRECTION_LABELS: Record<string, { label: string; icon: string }> = {
 };
 
 export default function MicroclimateCard() {
-  const { weather, unit } = useWeather();
-  const [data, setData] = useState<MicroclimateData | null>(null);
+  const { location, unit } = useWeather();
   const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    if (!weather) { setData(null); return; }
-    getMicroclimate(weather.lat, weather.lon).then(setData).catch(() => setData(null));
-  }, [weather?.lat, weather?.lon]);
+  const key = locationKey(location);
+  const { data } = useQuery({
+    queryKey: ['microclimate', key],
+    queryFn: ({ signal }) => getMicroclimate(location!.lat, location!.lon, { signal }),
+    enabled: !!location,
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+  });
 
   if (!data || Math.abs(data.total_correction) < 0.5) return null;
 
@@ -38,9 +41,10 @@ export default function MicroclimateCard() {
         className={s.inlineBadge}
         onClick={() => setExpanded(!expanded)}
         whileTap={{ scale: 0.95 }}
+        aria-expanded={expanded}
         title="Microclimate estimate — click for details"
       >
-        <i className="fa-solid fa-location-crosshairs" />
+        <i className="fa-solid fa-location-crosshairs" aria-hidden="true" />
         ~{Math.abs(Math.round(unit === 'C' ? diff * 5 / 9 : diff))}&deg;{unit} {diff > 0 ? 'warmer' : 'cooler'} here
       </motion.button>
 

@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import SkyPulseLogo from '../layout/SkyPulseLogo';
-import { useWeather } from '../../context/WeatherContext';
+import { useWeather } from '../../hooks/useWeather';
 import { useGeolocation } from '../../hooks/useGeolocation';
-import { useToast } from '../ui/Toast';
+import { useToast } from '../../hooks/useToast';
 import s from '../../styles/components/welcome.module.css';
 
 const POPULAR_CITIES = [
@@ -19,7 +19,9 @@ const FEATURES = [
   { icon: 'fa-heart-pulse', title: 'Comfort Score', desc: 'AI-rated outdoor comfort with clothing tips' },
   { icon: 'fa-road', title: 'Journey Planner', desc: 'Weather along your driving route' },
   { icon: 'fa-robot', title: 'AI Chat', desc: 'Ask anything about the weather' },
-  { icon: 'fa-chart-line', title: 'Forecasts & Charts', desc: '5-day outlook with interactive graphs' },
+  { icon: 'fa-chart-line', title: 'Hourly & 5-Day', desc: '48-hour strip, charts and daily outlook' },
+  { icon: 'fa-triangle-exclamation', title: 'Severe Alerts', desc: 'Live NWS warnings for US locations' },
+  { icon: 'fa-clock-rotate-left', title: 'Climate Context', desc: 'Today vs. the 30-year average' },
 ];
 
 const containerVariants = {
@@ -44,23 +46,19 @@ export default function WelcomeScreen() {
   const { loadWeather } = useWeather();
   const { getLocation, loading: geoLoading } = useGeolocation();
   const { showToast } = useToast();
-  const [locating, setLocating] = useState(false);
 
-  const greeting = useMemo(getGreeting, []);
+  const greeting = useMemo(() => getGreeting(), []);
 
   const handleLocation = async () => {
-    setLocating(true);
     try {
       const { lat, lon } = await getLocation();
       loadWeather(lat, lon);
     } catch {
       showToast('Could not get your location. Please allow location access.', 'error');
-    } finally {
-      setLocating(false);
     }
   };
 
-  const isLocating = locating || geoLoading;
+  const isLocating = geoLoading;
 
   return (
     <motion.div
@@ -74,10 +72,10 @@ export default function WelcomeScreen() {
         <div className={s.logoWrap}>
           <SkyPulseLogo size={72} />
         </div>
-        <h1 className={s.heading}>
-          <i className={`fa-solid ${greeting.icon} ${s.greetingIcon}`} />
+        <h2 className={s.heading}>
+          <i className={`fa-solid ${greeting.icon} ${s.greetingIcon}`} aria-hidden="true" />
           {' '}{greeting.text}
-        </h1>
+        </h2>
         <p className={s.tagline}>
           Your personal weather companion — search any city or use your location to get started.
         </p>

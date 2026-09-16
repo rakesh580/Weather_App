@@ -1,13 +1,18 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { planJourney } from '../../api/journey';
-import { useToast } from '../ui/Toast';
+import { getServerHealth } from '../../api/weather';
+import { errorMessage } from '../../api/client';
+import { defaultDeparture, datetimeLocalToISO, toDatetimeLocal } from '../../utils/time';
+import { journeyHistory } from '../../utils/journeyHistory';
+import { useToast } from '../../hooks/useToast';
 import JourneyCityInput from './JourneyCityInput';
 import JourneySummary from './JourneySummary';
 import JourneyMap from './JourneyMap';
 import JourneySparkline from './JourneySparkline';
 import JourneyTimeline from './JourneyTimeline';
-import JourneyHistory, { saveToHistory } from './JourneyHistory';
+import JourneyHistory from './JourneyHistory';
 import JourneyComparison from './JourneyComparison';
 import type { CityData, JourneyResponse, SavedJourney } from '../../types/journey';
 import s from '../../styles/components/journey.module.css';
@@ -33,11 +38,9 @@ export default function JourneySection({ onJourneyData }: Props) {
   const [dest, setDest] = useState<CityData | null>(null);
   const [originQuery, setOriginQuery] = useState('');
   const [destQuery, setDestQuery] = useState('');
-  const [departure, setDeparture] = useState(() => {
-    const now = new Date();
-    now.setHours(now.getHours() + 1, 0, 0, 0);
-    return now.toISOString().slice(0, 16);
-  });
+  const [departure, setDeparture] = useState(() => defaultDeparture(1));
+  const health = useQuery({ queryKey: ['server-health'], queryFn: ({ signal }) => getServerHealth({ signal }), staleTime: Infinity });
+  const aiEnabled = !!health.data?.providers.ai;
   const [data, setData] = useState<JourneyResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -61,15 +64,14 @@ export default function JourneySection({ onJourneyData }: Props) {
       const result = await planJourney({
         origin_lat: origin!.lat, origin_lon: origin!.lon, origin_name: origin!.name,
         dest_lat: dest!.lat, dest_lon: dest!.lon, dest_name: dest!.name,
-        departure_time: departure,
+        departure_time: datetimeLocalToISO(departure),
       });
       setData(result);
       setResultTab('overview');
       onJourneyData?.(result);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch (e) {
-      showToast('Failed to plan journey. Please try again.', 'error');
-      console.error(e);
+      showToast(errorMessage(e, 'Failed to plan journey. Please try again.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -96,12 +98,12 @@ export default function JourneySection({ onJourneyData }: Props) {
       id: Date.now().toString(36),
       origin_name: origin.name,
       dest_name: dest.name,
-      departure_time: departure,
+      departure_time: datetimeLocalToISO(departure),
       saved_at: new Date().toISOString(),
       request: {
         origin_lat: origin.lat, origin_lon: origin.lon, origin_name: origin.name,
         dest_lat: dest.lat, dest_lon: dest.lon, dest_name: dest.name,
-        departure_time: departure,
+        departure_time: datetimeLocalToISO(departure),
       },
       summary: {
         distance_miles: data.total_distance_miles,
@@ -109,7 +111,7 @@ export default function JourneySection({ onJourneyData }: Props) {
         worst_severity: worst,
       },
     };
-    saveToHistory(saved);
+    journeyHistory.save(saved);
     showToast('Journey saved!', 'success');
   };
 
@@ -120,14 +122,15 @@ export default function JourneySection({ onJourneyData }: Props) {
       const canvas = await html2canvas(resultsRef.current, { useCORS: true, scale: 2 });
       canvas.toBlob(blob => {
         if (!blob) return;
-        if (navigator.share) {
-          const file = new File([blob], 'journey-weather.png', { type: 'image/png' });
+        const file = new File([blob], 'journey-weather.png', { type: 'image/png' });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
           navigator.share({ files: [file], title: 'Journey Weather Corridor' }).catch(() => {});
         } else {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url; a.download = 'journey-weather.png'; a.click();
-          URL.revokeObjectURL(url);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          showToast('Screenshot downloaded.', 'success');
         }
       });
     } catch {
@@ -141,7 +144,8 @@ export default function JourneySection({ onJourneyData }: Props) {
     setDest({ lat: req.dest_lat, lon: req.dest_lon, name: req.dest_name || '' });
     setOriginQuery(req.origin_name || '');
     setDestQuery(req.dest_name || '');
-    setDeparture(req.departure_time);
+    const when = new Date(req.departure_time);
+    setDeparture(when.getTime() > Date.now() ? toDatetimeLocal(when) : defaultDeparture(1));
   };
 
   const handleOriginSelect = (city: CityData) => {
@@ -168,7 +172,6 @@ export default function JourneySection({ onJourneyData }: Props) {
         <div>
           <h2 className={s.sectionTitle}>
             <i className="fa-solid fa-road" /> Journey Weather Corridor
-            <span className={s.premiumBadge}>NEW</span>
           </h2>
           <p className={s.sectionSubtitle}>Time-shifted weather along your driving route</p>
         </div>
@@ -177,22 +180,24 @@ export default function JourneySection({ onJourneyData }: Props) {
       {/* Form: two-row layout */}
       <div className={s.form}>
         <div className={s.routeRow}>
-          <JourneyCityInput label="Origin" onSelect={handleOriginSelect} value={originQuery} error={errors.origin} />
+          <JourneyCityInput label="Origin" onSelect={handleOriginSelect} onClear={() => setOrigin(null)} value={originQuery} error={errors.origin} />
           <motion.button
             className={s.swapBtn}
             onClick={handleSwap}
             title="Swap origin & destination"
+            aria-label="Swap origin and destination"
             type="button"
             whileTap={{ rotate: 180, scale: 0.9 }}
           >
             <i className="fa-solid fa-arrows-rotate" />
           </motion.button>
-          <JourneyCityInput label="Destination" onSelect={handleDestSelect} value={destQuery} error={errors.dest} />
+          <JourneyCityInput label="Destination" onSelect={handleDestSelect} onClear={() => setDest(null)} value={destQuery} error={errors.dest} />
         </div>
         <div className={s.actionRow}>
           <div className={`${s.field} ${s.fieldTime}`}>
-            <label className={s.fieldLabel}>Departure</label>
+            <label className={s.fieldLabel} htmlFor="journey-departure">Departure</label>
             <input
+              id="journey-departure"
               className={s.fieldInput}
               type="datetime-local"
               value={departure}
@@ -257,10 +262,12 @@ export default function JourneySection({ onJourneyData }: Props) {
           </motion.div>
 
           {/* Result tabs */}
-          <motion.div className={s.resultTabs} variants={staggerItem}>
+          <motion.div className={s.resultTabs} variants={staggerItem} role="tablist" aria-label="Journey results">
             {resultTabs.map(tab => (
               <button
                 key={tab.key}
+                role="tab"
+                aria-selected={resultTab === tab.key}
                 className={`${s.resultTab} ${resultTab === tab.key ? s.resultTabActive : ''}`}
                 onClick={() => setResultTab(tab.key)}
               >
@@ -287,7 +294,7 @@ export default function JourneySection({ onJourneyData }: Props) {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <JourneySummary data={data} />
+                  <JourneySummary data={data} aiEnabled={aiEnabled} />
                   <JourneyMap data={data} />
                 </motion.div>
               )}
@@ -311,7 +318,7 @@ export default function JourneySection({ onJourneyData }: Props) {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <JourneyComparison origin={origin} dest={dest} />
+                  <JourneyComparison origin={origin} dest={dest} baseDeparture={departure} />
                 </motion.div>
               )}
             </AnimatePresence>

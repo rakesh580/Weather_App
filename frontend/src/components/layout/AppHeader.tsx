@@ -2,43 +2,65 @@ import { motion } from 'framer-motion';
 import SkyPulseLogo from './SkyPulseLogo';
 import s from '../../styles/components/header.module.css';
 
+export type View = 'weather' | 'journey' | 'activity' | 'health' | 'logistics';
+
 interface Props {
-  activeView: 'weather' | 'journey' | 'activity' | 'health' | 'logistics';
-  onViewChange: (view: 'weather' | 'journey' | 'activity' | 'health' | 'logistics') => void;
+  activeView: View;
+  onViewChange: (view: View) => void;
 }
 
-const tabs = [
-  { key: 'weather' as const, label: 'Weather', icon: 'fa-solid fa-cloud-sun' },
-  { key: 'journey' as const, label: 'Journey', icon: 'fa-solid fa-road' },
-  { key: 'activity' as const, label: 'Activity', icon: 'fa-solid fa-person-running' },
-  { key: 'health' as const, label: 'Health', icon: 'fa-solid fa-heart-pulse' },
-  { key: 'logistics' as const, label: 'Logistics', icon: 'fa-solid fa-truck-fast' },
+const tabs: { key: View; label: string; icon: string }[] = [
+  { key: 'weather', label: 'Weather', icon: 'fa-solid fa-cloud-sun' },
+  { key: 'journey', label: 'Journey', icon: 'fa-solid fa-road' },
+  { key: 'activity', label: 'Activity', icon: 'fa-solid fa-person-running' },
+  { key: 'health', label: 'Health', icon: 'fa-solid fa-heart-pulse' },
+  { key: 'logistics', label: 'Logistics', icon: 'fa-solid fa-truck-fast' },
 ];
 
 export default function AppHeader({ activeView, onViewChange }: Props) {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const idx = tabs.findIndex(t => t.key === activeView);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const next = tabs[(idx + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+      onViewChange(next.key);
+      document.getElementById(`tab-${next.key}`)?.focus();
+    }
+  };
+
   return (
     <header className={s.header}>
       <h1 className={s.title}>
         <SkyPulseLogo size={30} /> SkyPulse
       </h1>
-      <p className={s.subtitle}>Real-time weather, worldwide</p>
-      <nav className={s.navTabs}>
-        {tabs.map(tab => (
-          <button
-            key={tab.key}
-            className={`${s.navTab} ${activeView === tab.key ? s.navTabActive : ''}`}
-            onClick={() => onViewChange(tab.key)}
-          >
-            <i className={tab.icon} /> {tab.label}
-            {activeView === tab.key && (
-              <motion.div
-                className={s.navIndicator}
-                layoutId="nav-indicator"
-                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-              />
-            )}
-          </button>
-        ))}
+      <p className={s.subtitle}>Weather intelligence, worldwide</p>
+      <nav aria-label="Sections">
+        <div className={s.navTabs} role="tablist" onKeyDown={onKeyDown}>
+          {tabs.map(tab => {
+            const active = activeView === tab.key;
+            return (
+              <button
+                key={tab.key}
+                id={`tab-${tab.key}`}
+                role="tab"
+                aria-selected={active}
+                aria-controls={`panel-${tab.key}`}
+                tabIndex={active ? 0 : -1}
+                className={`${s.navTab} ${active ? s.navTabActive : ''}`}
+                onClick={() => onViewChange(tab.key)}
+              >
+                <i className={tab.icon} aria-hidden="true" /> <span>{tab.label}</span>
+                {active && (
+                  <motion.div
+                    className={s.navIndicator}
+                    layoutId="nav-indicator"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </nav>
     </header>
   );

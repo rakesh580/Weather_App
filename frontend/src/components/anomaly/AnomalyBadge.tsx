@@ -1,20 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAnomaly } from '../../api/anomaly';
-import { useWeather } from '../../context/WeatherContext';
+import { useWeather } from '../../hooks/useWeather';
+import { locationKey } from '../../utils/location';
 import { convertTemp } from '../../utils/tempUtils';
-import type { AnomalyData } from '../../types/anomaly';
 import s from '../../styles/components/anomaly.module.css';
 
 export default function AnomalyBadge() {
-  const { weather, unit } = useWeather();
-  const [data, setData] = useState<AnomalyData | null>(null);
+  const { location, unit } = useWeather();
   const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    if (!weather) { setData(null); return; }
-    getAnomaly(weather.lat, weather.lon).then(setData).catch(() => setData(null));
-  }, [weather?.lat, weather?.lon]);
+  const key = locationKey(location);
+  const { data } = useQuery({
+    queryKey: ['anomaly', key],
+    queryFn: ({ signal }) => getAnomaly(location!.lat, location!.lon, { signal }),
+    enabled: !!location,
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+  });
 
   if (!data || !data.anomaly) return null;
 
@@ -47,10 +50,11 @@ export default function AnomalyBadge() {
         className={`${s.badge} ${badgeClass}`}
         onClick={() => setExpanded(!expanded)}
         whileTap={{ scale: 0.95 }}
-        title="Weather anomaly — click for details"
+        aria-expanded={expanded}
+        title="Compared with the 30-year average for this date — click for details"
       >
-        <i className={`fa-solid ${badgeIcon} ${s.badgeIcon}`} />
-        {diffDisplay}&deg;{unit} {anomaly.direction} than normal
+        <i className={`fa-solid ${badgeIcon} ${s.badgeIcon}`} aria-hidden="true" />
+        {isNormal || diffDisplay === 0 ? 'Typical for this date' : `${diffDisplay}°${unit} ${anomaly.direction} than normal`}
       </motion.button>
 
       <AnimatePresence>

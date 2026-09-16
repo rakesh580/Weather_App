@@ -47,7 +47,7 @@ export const SYMPTOM_TYPES = [
   { id: 'joint_pain', name: 'Joint Pain', icon: 'fa-bone' },
   { id: 'fatigue', name: 'Fatigue', icon: 'fa-battery-quarter' },
   { id: 'mood', name: 'Low Mood', icon: 'fa-cloud-rain' },
-  { id: 'allergies', name: 'Allergies', icon: 'fa-flower-tulip' },
+  { id: 'allergies', name: 'Allergies', icon: 'fa-seedling' },
   { id: 'breathing', name: 'Breathing', icon: 'fa-lungs' },
   { id: 'sinus', name: 'Sinus', icon: 'fa-face-tired' },
   { id: 'sleep', name: 'Sleep Issues', icon: 'fa-moon' },

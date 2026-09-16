@@ -18,7 +18,7 @@
 
   --text-primary: #2d2418;
   --text-secondary: rgba(45, 36, 24, 0.72);
-  --text-muted: rgba(45, 36, 24, 0.45);
+  --text-muted: rgba(45, 36, 24, 0.62);
 
   --input-bg: rgba(255, 255, 255, 0.7);
   --input-border: rgba(180, 160, 130, 0.35);
@@ -42,15 +42,8 @@
   --toggle-bg: rgba(210, 190, 160, 0.2);
 
   /* Glass */
-  --glass-blur: blur(22px);
+  --glass-blur: blur(14px);
   --glass-border: 1px solid var(--card-border);
-
-  /* Soft Effects */
-  --neon-glow: 0 2px 12px rgba(120, 90, 50, 0.08);
-  --neon-text-glow: none;
-  --neon-border: rgba(180, 160, 130, 0.2);
-  --hud-bracket-color: transparent;
-  --scanner-color: transparent;
   --section-line-color: rgba(194, 112, 62, 0.3);
 }
 
@@ -65,7 +58,7 @@
 
   --text-primary: #e8e2d6;
   --text-secondary: rgba(232, 226, 214, 0.72);
-  --text-muted: rgba(232, 226, 214, 0.40);
+  --text-muted: rgba(232, 226, 214, 0.58);
 
   --input-bg: rgba(25, 30, 22, 0.9);
   --input-border: rgba(160, 140, 100, 0.2);
@@ -85,14 +78,7 @@
   --skeleton-to: rgba(160, 140, 100, 0.04);
   --toggle-bg: rgba(160, 140, 100, 0.1);
 
-  --glass-blur: blur(16px);
-
-  /* Soft Effects — Dark */
-  --neon-glow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  --neon-text-glow: none;
-  --neon-border: rgba(160, 140, 100, 0.12);
-  --hud-bracket-color: transparent;
-  --scanner-color: transparent;
+  --glass-blur: blur(12px);
   --section-line-color: rgba(212, 160, 90, 0.25);
 }
 

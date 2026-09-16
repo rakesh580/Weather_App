@@ -1,4 +1,6 @@
 import type { Waypoint } from '../../types/journey';
+import { useWeather } from '../../hooks/useWeather';
+import { convertTemp } from '../../utils/tempUtils';
 import s from '../../styles/components/journey.module.css';
 
 interface Props {
@@ -19,6 +21,7 @@ function getDrivingTip(severity: string, windSpeed: number): string {
 }
 
 export default function JourneyDetailCard({ waypoint, open }: Props) {
+  const { unit } = useWeather();
   if (!open) return null;
 
   const w = waypoint.weather;
@@ -38,7 +41,7 @@ export default function JourneyDetailCard({ waypoint, open }: Props) {
       {w.feels_like != null && (
         <div className={s.detailItem}>
           <i className="fa-solid fa-temperature-half" />
-          <span>Feels {Math.round(w.feels_like)}&deg;F</span>
+          <span>Feels {convertTemp(w.feels_like, unit)}&deg;{unit}</span>
         </div>
       )}
       {w.pressure != null && (

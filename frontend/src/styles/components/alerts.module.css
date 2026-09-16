@@ -1,0 +1,32 @@
+.stack { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.alert { border-radius: var(--radius-md); border: 1px solid; overflow: hidden; background: var(--card-bg); }
+.summary {
+  width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  background: none; border: none; color: var(--text-primary); text-align: left; cursor: pointer; font: inherit;
+}
+.summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.icon { font-size: 1.1rem; flex-shrink: 0; }
+.text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.text strong { font-size: 0.92rem; }
+.sub { font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; flex-shrink: 0; }
+.chevron { font-size: 0.7rem; color: var(--text-muted); }
+.body { padding: 0 14px; }
+.desc, .instruction, .sender { font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary); margin: 0 0 12px; white-space: pre-line; }
+.sender { font-size: 0.72rem; color: var(--text-muted); }
+.extreme { border-color: rgba(220, 38, 38, 0.6); }
+.extreme .icon, .extreme .badge { color: #b91c1c; }
+.extreme .badge { background: rgba(220, 38, 38, 0.15); }
+.severe { border-color: rgba(234, 88, 12, 0.6); }
+.severe .icon, .severe .badge { color: #c2410c; }
+.severe .badge { background: rgba(234, 88, 12, 0.15); }
+.moderate { border-color: rgba(217, 119, 6, 0.55); }
+.moderate .icon, .moderate .badge { color: #b45309; }
+.moderate .badge { background: rgba(217, 119, 6, 0.15); }
+.minor { border-color: rgba(59, 130, 246, 0.45); }
+.minor .icon, .minor .badge { color: #1d4ed8; }
+.minor .badge { background: rgba(59, 130, 246, 0.12); }
+[data-theme="dark"] .extreme .icon, [data-theme="dark"] .extreme .badge { color: #fca5a5; }
+[data-theme="dark"] .severe .icon, [data-theme="dark"] .severe .badge { color: #fdba74; }
+[data-theme="dark"] .moderate .icon, [data-theme="dark"] .moderate .badge { color: #fcd34d; }
+[data-theme="dark"] .minor .icon, [data-theme="dark"] .minor .badge { color: #93c5fd; }

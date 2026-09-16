@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getWeatherIcon } from '../../utils/weatherIcons';
+import { useWeather } from '../../hooks/useWeather';
+import { convertTemp } from '../../utils/tempUtils';
 import JourneyDetailCard from './JourneyDetailCard';
 import type { JourneyResponse } from '../../types/journey';
 import s from '../../styles/components/journey.module.css';
@@ -27,6 +29,7 @@ function getWindLabel(windDeg: number | undefined, routeBearing: number | undefi
 }
 
 export default function JourneyTimeline({ data }: Props) {
+  const { unit } = useWeather();
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [fadeVisible, setFadeVisible] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -75,7 +78,7 @@ export default function JourneyTimeline({ data }: Props) {
                   <div className={s.wpName}>{wp.name}</div>
                   <div className={s.wpTime}>{time} &middot; {date}</div>
                   <div className={s.wpIcon}><i className={`${icon.iconClass} ${icon.animClass}`} /></div>
-                  <div className={s.wpTemp}>{Math.round(wp.weather.temperature)}&deg;F</div>
+                  <div className={s.wpTemp}>{convertTemp(wp.weather.temperature, unit)}&deg;{unit}</div>
                   <div className={s.wpDesc}>
                     <span className={s.severityDot} style={{ background: wp.color }} />
                     {wp.weather.description}

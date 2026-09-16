@@ -1,9 +1,11 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useId } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { searchCity } from '../../api/weather';
-import { useWeather } from '../../context/WeatherContext';
-import { useToast } from '../ui/Toast';
+import { useWeather } from '../../hooks/useWeather';
+import { useToast } from '../../hooks/useToast';
+import { safeStorage } from '../../utils/storage';
 import type { SearchResult } from '../../types/weather';
 import s from '../../styles/components/search.module.css';
 
@@ -11,64 +13,63 @@ const RECENT_KEY = 'skypulse-recent-searches';
 const MAX_RECENT = 5;
 
 function loadRecent(): SearchResult[] {
-  try {
-    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-  } catch {
-    return [];
-  }
+  const raw = safeStorage.getJSON<unknown>(RECENT_KEY, []);
+  return Array.isArray(raw) ? (raw as SearchResult[]).filter(r => r && typeof r.lat === 'number') : [];
 }
 
 function saveRecent(items: SearchResult[]) {
-  localStorage.setItem(RECENT_KEY, JSON.stringify(items.slice(0, MAX_RECENT)));
+  safeStorage.setJSON(RECENT_KEY, items.slice(0, MAX_RECENT));
 }
 
 export default function SearchBar() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [open, setOpen] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [noResults, setNoResults] = useState(false);
+  /** true while the current text was typed by the user (not filled in by a selection) */
+  const [dirty, setDirty] = useState(false);
+  /** user dismissed the dropdown (Escape / blur / selection) */
+  const [dismissed, setDismissed] = useState(true);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [recentSearches, setRecentSearches] = useState<SearchResult[]>(loadRecent);
-  const [showRecent, setShowRecent] = useState(false);
   const debounced = useDebounce(query, 300);
   const { getLocation, loading: geoLoading } = useGeolocation();
   const { loadWeather } = useWeather();
   const { showToast } = useToast();
-  const listRef = useRef<HTMLDivElement>(null);
+  const listboxId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (debounced.length < 2) {
-      setOpen(false);
-      setNoResults(false);
-      return;
-    }
-    setIsSearching(true);
-    setNoResults(false);
-    searchCity(debounced).then(r => {
-      setResults(r);
-      setOpen(r.length > 0);
-      setNoResults(r.length === 0);
-      setActiveIndex(-1);
-    }).catch(() => {
-      setOpen(false);
-      setNoResults(false);
-    }).finally(() => setIsSearching(false));
-  }, [debounced]);
+  useEffect(() => () => { if (blurTimer.current) clearTimeout(blurTimer.current); }, []);
+
+  const searchActive = dirty && debounced.length >= 2;
+  const search = useQuery({
+    queryKey: ['city-search', debounced],
+    queryFn: ({ signal }) => searchCity(debounced, 5, { signal }),
+    enabled: searchActive,
+    staleTime: 24 * 60 * 60 * 1000,
+    retry: false,
+  });
+  const results: SearchResult[] = searchActive && search.data ? search.data : [];
+  const isSearching = searchActive && search.isFetching;
+  const settled = searchActive && query === debounced && !search.isFetching && !search.isError;
+  const open = !dismissed && settled && results.length > 0;
+  const noResults = !dismissed && settled && results.length === 0;
+
+  const closeAll = useCallback(() => {
+    setDismissed(true);
+    setActiveIndex(-1);
+  }, []);
 
   const select = useCallback((r: SearchResult) => {
+    setDirty(false);
     setQuery(r.name);
-    setOpen(false);
-    setShowRecent(false);
-    setNoResults(false);
+    closeAll();
     loadWeather(r.lat, r.lon, r.name);
     setRecentSearches(prev => {
-      const filtered = prev.filter(p => !(p.lat === r.lat && p.lon === r.lon));
-      const updated = [r, ...filtered].slice(0, MAX_RECENT);
+      const updated = [r, ...prev.filter(p => !(p.lat === r.lat && p.lon === r.lon))].slice(0, MAX_RECENT);
       saveRecent(updated);
       return updated;
     });
-  }, [loadWeather]);
+    inputRef.current?.blur();
+  }, [loadWeather, closeAll]);
 
   const removeRecent = useCallback((lat: number, lon: number) => {
     setRecentSearches(prev => {
@@ -87,127 +88,107 @@ export default function SearchBar() {
     }
   }, [getLocation, loadWeather, showToast]);
 
-  const displayItems = showRecent && !open && query.length < 2 ? recentSearches : results;
-  const isRecentMode = showRecent && !open && query.length < 2 && recentSearches.length > 0;
+  const handleChange = (value: string) => {
+    setQuery(value);
+    setDirty(true);
+    setDismissed(false);
+    setActiveIndex(-1);
+  };
+
+  const isRecentMode = !dismissed && query.length < 2 && recentSearches.length > 0;
+  const displayItems = isRecentMode ? recentSearches : results;
   const dropdownVisible = open || isRecentMode || noResults;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       if (!dropdownVisible && recentSearches.length > 0) {
-        setShowRecent(true);
+        setDismissed(false);
         setActiveIndex(0);
         return;
       }
-      const max = noResults ? 0 : displayItems.length - 1;
-      setActiveIndex(i => Math.min(i + 1, max));
+      setActiveIndex(i => Math.min(i + 1, Math.max(0, displayItems.length - 1)));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setActiveIndex(i => Math.max(i - 1, -1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (activeIndex >= 0 && activeIndex < displayItems.length) {
-        select(displayItems[activeIndex]);
-      } else if (displayItems.length > 0) {
-        select(displayItems[0]);
-      }
+      if (activeIndex >= 0 && activeIndex < displayItems.length) select(displayItems[activeIndex]);
+      else if (displayItems.length > 0) select(displayItems[0]);
     } else if (e.key === 'Escape') {
-      setOpen(false);
-      setShowRecent(false);
-      setNoResults(false);
-      setActiveIndex(-1);
-    }
-  };
-
-  const handleFocus = () => {
-    if (query.length < 2 && recentSearches.length > 0) {
-      setShowRecent(true);
+      closeAll();
     }
   };
 
   const handleBlur = () => {
-    setTimeout(() => {
-      setOpen(false);
-      setShowRecent(false);
-      setNoResults(false);
-      setActiveIndex(-1);
-    }, 200);
+    blurTimer.current = setTimeout(closeAll, 180);
   };
 
-  const activeId = activeIndex >= 0 ? `search-option-${activeIndex}` : undefined;
+  const activeId = activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined;
 
   return (
     <div className={s.section}>
       <div className={s.wrapper}>
-        <i className={`fa-solid ${isSearching ? 'fa-spinner fa-spin' : 'fa-magnifying-glass'} ${s.icon}`} />
+        <i className={`fa-solid ${isSearching ? 'fa-spinner fa-spin' : 'fa-magnifying-glass'} ${s.icon}`} aria-hidden="true" />
         <input
+          id="city-search"
+          ref={inputRef}
           className={s.input}
           type="text"
-          placeholder="Search any city..."
+          placeholder="Search any city…  (press / to focus)"
+          aria-label="Search for a city"
           value={query}
-          onChange={e => { setQuery(e.target.value); setActiveIndex(-1); }}
+          onChange={e => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
+          onFocus={() => { if (query.length < 2 && recentSearches.length > 0) setDismissed(false); }}
           onBlur={handleBlur}
           role="combobox"
           aria-expanded={dropdownVisible}
           aria-autocomplete="list"
-          aria-controls="search-listbox"
+          aria-controls={listboxId}
           aria-activedescendant={activeId}
+          aria-busy={isSearching}
+          autoComplete="off"
         />
-        <button className={s.locationBtn} onClick={handleGeo} aria-label="Use my location">
-          <i className={geoLoading ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-location-crosshairs'} />
+        <button className={s.locationBtn} onClick={handleGeo} aria-label="Use my location" disabled={geoLoading}>
+          <i className={geoLoading ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-location-crosshairs'} aria-hidden="true" />
         </button>
         {dropdownVisible && (
-          <div className={s.dropdown} ref={listRef} id="search-listbox" role="listbox">
-            {isRecentMode && (
-              <>
-                <div className={s.dropdownLabel}>Recent searches</div>
-                {recentSearches.map((r, i) => (
-                  <div
-                    key={`recent-${i}`}
-                    id={`search-option-${i}`}
-                    className={`${s.result} ${activeIndex === i ? s.resultActive : ''}`}
-                    onMouseDown={() => select(r)}
-                    onMouseEnter={() => setActiveIndex(i)}
-                    role="option"
-                    aria-selected={activeIndex === i}
-                  >
-                    <div className={s.resultName}>
-                      <i className={`fa-regular fa-clock ${s.recentIcon}`} />
-                      {r.name}
-                    </div>
-                    <div className={s.resultDetail}>
-                      {[r.state, r.country].filter(Boolean).join(', ')}
-                      <button
-                        className={s.resultDelete}
-                        onMouseDown={e => { e.stopPropagation(); removeRecent(r.lat, r.lon); }}
-                        aria-label={`Remove ${r.name} from recent`}
-                      >
-                        <i className="fa-solid fa-xmark" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-            {open && results.map((r, i) => (
+          <div className={s.dropdown} id={listboxId} role="listbox" aria-label={isRecentMode ? 'Recent searches' : 'City results'}>
+            {isRecentMode && <div className={s.dropdownLabel}>Recent searches</div>}
+            {displayItems.map((r, i) => (
               <div
-                key={i}
-                id={`search-option-${i}`}
+                key={`${r.lat},${r.lon}`}
+                id={`${listboxId}-opt-${i}`}
                 className={`${s.result} ${activeIndex === i ? s.resultActive : ''}`}
-                onMouseDown={() => select(r)}
+                onMouseDown={e => { e.preventDefault(); select(r); }}
                 onMouseEnter={() => setActiveIndex(i)}
                 role="option"
                 aria-selected={activeIndex === i}
               >
-                <div className={s.resultName}>{r.name}</div>
-                <div className={s.resultDetail}>{[r.state, r.country].filter(Boolean).join(', ')}</div>
+                <div className={s.resultName}>
+                  {isRecentMode && <i className={`fa-regular fa-clock ${s.recentIcon}`} aria-hidden="true" />}
+                  {r.name}
+                </div>
+                <div className={s.resultDetail}>
+                  {[r.state, r.country].filter(Boolean).join(', ')}
+                  {isRecentMode && (
+                    <span
+                      className={s.resultDelete}
+                      role="button"
+                      tabIndex={-1}
+                      onMouseDown={e => { e.preventDefault(); e.stopPropagation(); removeRecent(r.lat, r.lon); }}
+                      aria-label={`Remove ${r.name} from recent`}
+                    >
+                      <i className="fa-solid fa-xmark" aria-hidden="true" />
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
             {noResults && !isRecentMode && (
-              <div className={s.emptyState}>
-                <i className="fa-regular fa-face-frown" /> No cities found
+              <div className={s.emptyState} role="status">
+                <i className="fa-regular fa-face-frown" aria-hidden="true" /> No cities found
               </div>
             )}
           </div>

@@ -1,13 +1,20 @@
 services:
   - type: web
-    name: weather-app
+    name: skypulse
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
     envVars:
       - key: OPENWEATHER_API_KEY
         sync: false
-      - key: HF_API_KEY
+      - key: GROQ_API_KEY
         sync: false
       - key: ORS_API_KEY
         sync: false
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "80"
+      - key: LOG_JSON
+        value: "true"

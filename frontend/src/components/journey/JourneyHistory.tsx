@@ -1,63 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useJourneyHistory, journeyHistory } from '../../utils/journeyHistory';
 import type { SavedJourney } from '../../types/journey';
 import s from '../../styles/components/journey.module.css';
-
-const STORAGE_KEY = 'skypulse-journey-history';
-const MAX_ITEMS = 10;
-
-export function loadHistory(): SavedJourney[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  } catch { return []; }
-}
-
-export function saveToHistory(journey: SavedJourney) {
-  const list = loadHistory();
-  list.unshift(journey);
-  if (list.length > MAX_ITEMS) list.length = MAX_ITEMS;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-}
 
 interface Props {
   onReplan: (journey: SavedJourney) => void;
 }
 
 export default function JourneyHistory({ onReplan }: Props) {
-  const [history, setHistory] = useState<SavedJourney[]>([]);
+  const history = useJourneyHistory();
   const [open, setOpen] = useState(false);
-
-  useEffect(() => { setHistory(loadHistory()); }, []);
-
-  const remove = (id: string) => {
-    const updated = history.filter(j => j.id !== id);
-    setHistory(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  };
 
   if (history.length === 0) return null;
 
   return (
     <div className={s.historyPanel}>
-      <button className={s.historyToggle} onClick={() => setOpen(!open)}>
-        <i className={`fa-solid fa-clock-rotate-left`} /> Recent Journeys ({history.length})
-        <i className={`fa-solid fa-chevron-${open ? 'up' : 'down'}`} style={{ marginLeft: 'auto' }} />
+      <button className={s.historyToggle} onClick={() => setOpen(!open)} aria-expanded={open}>
+        <i className="fa-solid fa-clock-rotate-left" aria-hidden="true" /> Recent Journeys ({history.length})
+        <i className={`fa-solid fa-chevron-${open ? 'up' : 'down'}`} style={{ marginLeft: 'auto' }} aria-hidden="true" />
       </button>
       {open && (
-        <div className={s.historyList}>
+        <ul className={s.historyList}>
           {history.map(j => (
-            <div key={j.id} className={s.historyItem}>
-              <div className={s.historyRoute} onClick={() => onReplan(j)}>
+            <li key={j.id} className={s.historyItem}>
+              <button className={s.historyRoute} onClick={() => onReplan(j)}>
                 <strong>{j.origin_name}</strong> → <strong>{j.dest_name}</strong>
                 <span className={s.historyMeta}>
-                  {Math.round(j.summary.distance_miles)} mi &middot; {new Date(j.departure_time).toLocaleDateString()}
+                  {Math.round(j.summary.distance_miles)} mi &middot; {new Date(j.departure_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric' })}
                 </span>
-              </div>
-              <button className={s.historyDelete} onClick={() => remove(j.id)} title="Remove">
-                <i className="fa-solid fa-xmark" />
               </button>
-            </div>
+              <button className={s.historyDelete} onClick={() => journeyHistory.remove(j.id)} aria-label={`Remove journey ${j.origin_name} to ${j.dest_name}`}>
+                <i className="fa-solid fa-xmark" aria-hidden="true" />
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

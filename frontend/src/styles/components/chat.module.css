@@ -95,3 +95,17 @@
 @media (max-width: 600px) {
   .container { width: calc(100% - 32px); right: 16px; bottom: 16px; }
 }
+
+.headerCity { font-weight: 400; opacity: 0.75; font-size: 0.85em; }
+.empty { padding: 12px 6px; color: var(--text-secondary); font-size: 0.88rem; }
+.empty p { margin: 0 0 10px; }
+.suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
+.suggestion {
+  font: inherit; font-size: 0.78rem; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  background: var(--chip-bg); border: 1px solid var(--card-border); color: var(--chip-text);
+}
+.suggestion:hover { border-color: var(--accent); color: var(--accent); }
+.messageError { opacity: 0.8; font-style: italic; }
+.input:disabled { opacity: 0.6; }
+.sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.closeBtn:focus-visible, .sendBtn:focus-visible, .suggestion:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

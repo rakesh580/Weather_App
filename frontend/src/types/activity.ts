@@ -6,7 +6,8 @@ export interface ActivityType {
 }
 
 export interface ActivityWindow {
-  start: string;       // ISO datetime
+  start: string;       // 'YYYY-MM-DD HH:MM:SS' in UTC (OpenWeatherMap dt_txt)
+  dt: number;          // unix seconds — use this for display
   end: string;
   score: number;       // 0-100
   temp: number;
