@@ -42,7 +42,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/map-tile') || url.hostname.endsWith('basemaps.cartocdn.com'),
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/map-tile') || url.hostname === 'basemaps.cartocdn.com' || url.hostname.endsWith('.basemaps.cartocdn.com'),
             handler: 'CacheFirst',
             options: {
               cacheName: 'skypulse-tiles',
